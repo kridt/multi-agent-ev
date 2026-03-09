@@ -1,0 +1,58 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+!.env.example
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# pytest cache
+.pytest_cache/
+
+# Coverage reports
+.coverage
+htmlcov/
+
+# Model artifacts
+models_saved/
+models_store/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# mypy cache
+.mypy_cache/
+
+# Ruff cache
+.ruff_cache/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
