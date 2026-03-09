@@ -5,6 +5,8 @@ import pytest
 from scipy.stats import poisson as poisson_dist
 from sklearn.metrics import brier_score_loss, log_loss
 
+from models.offsides import TeamOffsidesModel
+
 
 # ---------------------------------------------------------------------------
 # Poisson
@@ -319,3 +321,169 @@ class TestModelEvaluator:
         if "hypothetical_roi" in metrics:
             assert "n_bets" in metrics
             assert metrics["n_bets"] > 0
+
+
+# ---------------------------------------------------------------------------
+# Team Offsides Model
+# ---------------------------------------------------------------------------
+
+
+class TestTeamOffsidesModel:
+    """Test team offsides NegBin model."""
+
+    def test_offsides_model_type(self):
+        model = TeamOffsidesModel()
+        assert model.model_type == "negbin_offsides"
+        assert model.stat_type == "offsides"
+
+    def test_offsides_fit_predict(self):
+        model = TeamOffsidesModel()
+        np.random.seed(42)
+        X = np.random.rand(50, 3)
+        y = np.random.poisson(2.5, 50).astype(float)
+        model.fit(X, y)
+        pred = model.predict_proba(X[:5])
+        assert len(pred) == 5
+        assert all(p > 0 for p in pred)
+
+    def test_offsides_predict_line(self):
+        model = TeamOffsidesModel()
+        np.random.seed(42)
+        X = np.random.rand(50, 3)
+        y = np.random.poisson(2.5, 50).astype(float)
+        model.fit(X, y)
+        probs = model.predict_line(X[:5], line=2.5)
+        assert len(probs) == 5
+        assert all(0 <= p <= 1 for p in probs)
+
+    def test_offsides_build_feature_vector(self):
+        features = {
+            "rolling": {
+                "offsides": {
+                    "w3": {"mean": 2.3}, "w5": {"mean": 2.1, "std": 0.8}, "w10": {"mean": 2.0}
+                },
+                "shots": {"w5": {"mean": 12.5}},
+                "passes": {"w5": {"mean": 450.0}},
+            },
+            "opponent_adjusted": {"offsides": 2.4},
+            "consistency": {"offsides": {"cv": 0.35}},
+        }
+        vec = TeamOffsidesModel.build_feature_vector(features, is_home=True)
+        assert len(vec) == 9
+        assert vec[0] == 2.3  # w3 mean
+        assert vec[-1] == 1.0  # is_home
+
+
+# ---------------------------------------------------------------------------
+# Player Prop Models
+# ---------------------------------------------------------------------------
+
+
+class TestPlayerPropModels:
+    """Test expanded player prop models."""
+
+    def test_player_shots_model_type(self):
+        from models.player_props import PlayerShotsModel
+        model = PlayerShotsModel()
+        assert model.model_type == "negbin_shots"
+        assert model.stat == "shots"
+
+    def test_player_shots_on_target_model_type(self):
+        from models.player_props import PlayerShotsOnTargetModel
+        model = PlayerShotsOnTargetModel()
+        assert model.model_type == "negbin_shots_on_target"
+
+    def test_player_tackles_model_type(self):
+        from models.player_props import PlayerTacklesModel
+        model = PlayerTacklesModel()
+        assert model.model_type == "negbin_tackles"
+
+    def test_player_fouls_model_type(self):
+        from models.player_props import PlayerFoulsModel
+        model = PlayerFoulsModel()
+        assert model.model_type == "negbin_fouls_committed"
+
+    def test_player_offsides_model_type(self):
+        from models.player_props import PlayerOffsidesModel
+        model = PlayerOffsidesModel()
+        assert model.model_type == "negbin_offsides"
+
+    def test_player_prop_build_feature_vector(self):
+        from models.player_props import PlayerPropModel
+        features = {
+            "rolling": {
+                "shots": {
+                    "w3": {"mean": 3.2}, "w5": {"mean": 2.8, "std": 1.1, "trend": 0.1}, "w10": {"mean": 2.5}
+                }
+            },
+            "opponent_adjusted": {"shots": 3.0},
+            "consistency": {"shots": {"cv": 0.3}},
+        }
+        vec = PlayerPropModel.build_feature_vector(features, "shots", is_home=False)
+        assert len(vec) == 8
+        assert vec[0] == 3.2  # w3 mean
+        assert vec[-1] == 0.0  # is_home = False
+
+    def test_anytime_goalscorer_build_features(self):
+        from models.player_props import AnytimeGoalscorerModel
+        features = {
+            "rolling": {
+                "goals": {"w3": {"mean": 0.4}, "w5": {"mean": 0.35}, "w10": {"mean": 0.3}},
+                "shots": {"w5": {"mean": 2.5}},
+                "shots_on_target": {"w5": {"mean": 1.2}},
+            },
+            "opponent_adjusted": {"goals": 0.38},
+            "consistency": {"goals": {"cv": 0.6}},
+        }
+        vec = AnytimeGoalscorerModel.build_feature_vector(features, is_home=True)
+        assert len(vec) == 8
+        assert vec[0] == 0.4  # goals w3 mean
+        assert vec[-1] == 1.0  # is_home
+
+    def test_player_cards_build_features(self):
+        from models.player_props import PlayerCardsModel
+        features = {
+            "rolling": {
+                "yellow_cards": {"w3": {"mean": 0.3}, "w5": {"mean": 0.25}, "w10": {"mean": 0.2}},
+                "fouls_committed": {"w5": {"mean": 1.8}},
+                "tackles": {"w5": {"mean": 3.2}},
+            },
+            "opponent_adjusted": {"fouls_committed": 1.9},
+            "consistency": {"yellow_cards": {"cv": 0.7}},
+        }
+        vec = PlayerCardsModel.build_feature_vector(features, is_home=False)
+        assert len(vec) == 8
+        assert vec[0] == 0.3  # cards w3 mean
+        assert vec[-1] == 0.0  # away
+
+    def test_player_prop_fit_predict(self):
+        from models.player_props import PlayerShotsModel
+        model = PlayerShotsModel()
+        np.random.seed(42)
+        X = np.random.rand(50, 8)
+        y = np.random.poisson(2.5, 50).astype(float)
+        model.fit(X, y)
+        pred = model.predict_proba(X[:5])
+        assert len(pred) == 5
+
+    def test_anytime_goalscorer_fit_predict(self):
+        from models.player_props import AnytimeGoalscorerModel
+        model = AnytimeGoalscorerModel()
+        np.random.seed(42)
+        X = np.random.rand(100, 8)
+        y = (np.random.rand(100) > 0.7).astype(int)
+        model.fit(X, y)
+        probs = model.predict_proba(X[:5])
+        assert len(probs) == 5
+        assert all(0 <= p <= 1 for p in probs)
+
+    def test_player_cards_fit_predict(self):
+        from models.player_props import PlayerCardsModel
+        model = PlayerCardsModel()
+        np.random.seed(42)
+        X = np.random.rand(100, 8)
+        y = (np.random.rand(100) > 0.75).astype(int)
+        model.fit(X, y)
+        probs = model.predict_proba(X[:5])
+        assert len(probs) == 5
+        assert all(0 <= p <= 1 for p in probs)

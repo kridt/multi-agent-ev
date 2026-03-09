@@ -1,7 +1,7 @@
 """Tests for configuration modules."""
 
 from config.bookmakers import BOOKMAKERS, TARGET_BOOKMAKERS, SHARP_BOOKMAKERS
-from config.constants import ALL_MARKETS, MARKETS_TIER1, MARKETS_TIER2, MARKETS_TIER3
+from config.constants import ALL_MARKETS, MARKETS_TIER1, MARKETS_TIER2
 from config.leagues import LEAGUES, get_active_leagues
 from config.settings import Settings
 
@@ -56,6 +56,8 @@ def test_danske_spil_no_odds_api_key():
 
 
 def test_markets_priority_order():
-    # Tier 2 (team markets) should come first in ALL_MARKETS
-    assert ALL_MARKETS[:len(MARKETS_TIER2)] == MARKETS_TIER2
-    assert len(ALL_MARKETS) == len(MARKETS_TIER2) + len(MARKETS_TIER1) + len(MARKETS_TIER3)
+    # Tier 1 (team stat markets) comes first in ALL_MARKETS, then Tier 2 (player props).
+    # 1X2 and Asian Handicap (previously Tier 3) have been removed entirely.
+    assert ALL_MARKETS[:len(MARKETS_TIER1)] == MARKETS_TIER1
+    assert ALL_MARKETS[len(MARKETS_TIER1):] == MARKETS_TIER2
+    assert len(ALL_MARKETS) == len(MARKETS_TIER1) + len(MARKETS_TIER2)

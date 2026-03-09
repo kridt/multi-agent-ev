@@ -7,7 +7,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config.constants import ROLLING_WINDOWS
+from config.constants import PLAYER_ROLLING_STATS, ROLLING_WINDOWS, TEAM_ROLLING_STATS
 from db.models.matches import Match, MatchStats, PlayerMatchStats
 from features.consistency import ConsistencyScorer
 from features.feature_store import FeatureStore
@@ -16,12 +16,6 @@ from features.per90 import normalize_player_stats_per90
 from features.rolling import RollingCalculator
 
 logger = logging.getLogger(__name__)
-
-# Team-level stats to compute rolling windows over
-TEAM_ROLLING_STATS = ["goals", "shots", "corners", "possession_pct", "passes"]
-
-# Player-level stats to compute rolling windows over
-PLAYER_ROLLING_STATS = ["shots", "tackles", "passes", "key_passes", "goals"]
 
 
 class FeaturePipeline:
