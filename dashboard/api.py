@@ -443,6 +443,75 @@ def _demo_recent_bets(n: int = 10) -> list[dict]:
     return list(reversed(_DEMO_BETS[-n:]))
 
 
+def _demo_signals() -> list[dict]:
+    """Return demo EV signals for when the scanner has no live data."""
+    now = datetime.now(timezone.utc)
+    return [
+        {"id": "ds1", "home": "Arsenal", "away": "Chelsea", "league": "Premier League",
+         "market": "team_corners_ou", "selection": "Over 10.5", "bookmaker": "Bet365 DK",
+         "odds": 2.05, "model_prob": 0.56, "ev_pct": 8.2, "edge": 5.8, "confidence": 0.82,
+         "grade": "A", "kickoff": (now + timedelta(hours=2)).isoformat(),
+         "explanation": {"summary": "Strong corners value based on both teams\u2019 high corner rates.",
+          "reasons": ["Arsenal avg 6.2 corners/game (top 3 in PL)", "Chelsea concede 5.8 corners/game",
+           "H2H avg 12.3 corners last 5 meetings", "Model sees 56% chance of Over 10.5 vs implied 48.8%"],
+          "risk_factors": ["Chelsea may park the bus away", "Weather conditions unknown"]}},
+        {"id": "ds2", "home": "Bayern Munich", "away": "Dortmund", "league": "Bundesliga",
+         "market": "player_shots_ou", "selection": "Musiala Over 2.5 shots", "bookmaker": "Unibet DK",
+         "odds": 2.15, "model_prob": 0.54, "ev_pct": 7.1, "edge": 4.9, "confidence": 0.78,
+         "grade": "A", "kickoff": (now + timedelta(hours=3)).isoformat(),
+         "explanation": {"summary": "Musiala consistently exceeds shot expectations in big games.",
+          "reasons": ["Musiala avg 3.1 shots/game last 10", "Dortmund concede 14.2 shots/game",
+           "Der Klassiker typically high-tempo", "Model probability 54% vs implied 46.5%"],
+          "risk_factors": ["Musiala may be rotated", "Dortmund pressing may limit chances"]}},
+        {"id": "ds3", "home": "Real Madrid", "away": "Sevilla", "league": "La Liga",
+         "market": "anytime_goalscorer", "selection": "Vinicius Jr to score", "bookmaker": "Danske Spil",
+         "odds": 2.40, "model_prob": 0.48, "ev_pct": 9.2, "edge": 6.1, "confidence": 0.71,
+         "grade": "A", "kickoff": (now + timedelta(hours=4)).isoformat(),
+         "explanation": {"summary": "Vinicius in strong scoring form at the Bernabeu.",
+          "reasons": ["Vinicius 6 goals in last 8 home games", "Sevilla concede 1.8 goals/game away",
+           "xG per 90 of 0.62", "Model sees 48% vs implied 41.7%"],
+          "risk_factors": ["May be rested for Champions League"]}},
+        {"id": "ds4", "home": "Barcelona", "away": "Atletico Madrid", "league": "La Liga",
+         "market": "btts", "selection": "Yes", "bookmaker": "Danske Spil",
+         "odds": 1.92, "model_prob": 0.58, "ev_pct": 5.8, "edge": 3.6, "confidence": 0.75,
+         "grade": "B", "kickoff": (now + timedelta(hours=5)).isoformat(),
+         "explanation": {"summary": "Both teams score frequently in head-to-head matches.",
+          "reasons": ["BTTS hit in 7 of last 10 H2H meetings", "Barcelona score at home 92% of games",
+           "Atletico score away 68% of games"],
+          "risk_factors": ["Atletico may play ultra-defensive", "Simeone tends to shut down big games"]}},
+        {"id": "ds5", "home": "Inter", "away": "Juventus", "league": "Serie A",
+         "market": "team_offsides_ou", "selection": "Over 4.5", "bookmaker": "Bet365 DK",
+         "odds": 1.88, "model_prob": 0.60, "ev_pct": 5.2, "edge": 3.1, "confidence": 0.72,
+         "grade": "B", "kickoff": (now + timedelta(hours=6)).isoformat(),
+         "explanation": {"summary": "Derby d\u2019Italia historically produces many offsides.",
+          "reasons": ["Avg 5.8 offsides in last 8 meetings", "Inter\u2019s high line triggers offside traps",
+           "Juventus avg 2.4 offsides/game away"],
+          "risk_factors": ["Tactical adjustments may reduce offsides"]}},
+        {"id": "ds6", "home": "Man City", "away": "Liverpool", "league": "Premier League",
+         "market": "team_corners_ou", "selection": "Over 9.5", "bookmaker": "Bet365 DK",
+         "odds": 1.95, "model_prob": 0.57, "ev_pct": 6.8, "edge": 4.2, "confidence": 0.76,
+         "grade": "B", "kickoff": (now + timedelta(hours=7)).isoformat(),
+         "explanation": {"summary": "Both teams contest corners frequently in this rivalry.",
+          "reasons": ["Man City avg 6.8 corners/game at home", "Liverpool avg 5.9 corners/game away",
+           "H2H avg 11.2 corners last 6 meetings"],
+          "risk_factors": ["Pep may rotate squad for midweek"]}},
+        {"id": "ds7", "home": "PSG", "away": "Lyon", "league": "Ligue 1",
+         "market": "player_tackles_ou", "selection": "Verratti Over 3.5", "bookmaker": "Unibet DK",
+         "odds": 2.30, "model_prob": 0.49, "ev_pct": 4.1, "edge": 2.5, "confidence": 0.65,
+         "grade": "C", "kickoff": (now + timedelta(hours=8)).isoformat(),
+         "explanation": {"summary": "Verratti\u2019s tackling rate is above this line in most matches.",
+          "reasons": ["Verratti avg 4.2 tackles/game last 5", "Lyon play high possession forcing duels"],
+          "risk_factors": ["Verratti may be subbed early", "Low-tempo match possible"]}},
+        {"id": "ds8", "home": "Copenhagen", "away": "Midtjylland", "league": "Danish Superliga",
+         "market": "team_goals_ou", "selection": "Over 2.5", "bookmaker": "Danske Spil",
+         "odds": 1.75, "model_prob": 0.61, "ev_pct": 3.2, "edge": 1.8, "confidence": 0.60,
+         "grade": "D", "kickoff": (now + timedelta(hours=9)).isoformat(),
+         "explanation": {"summary": "Slight edge on goals but low confidence.",
+          "reasons": ["H2H avg 2.8 goals last 6 meetings", "Copenhagen strong at home (2.1 goals/game)"],
+          "risk_factors": ["Midtjylland very defensive away", "Small sample size", "Edge is marginal"]}},
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -545,9 +614,11 @@ async def get_signals() -> dict:
     Return the in-process signal history via REST.
 
     Returns the same data that would be delivered via WebSocket initial_state.
-    Maximum 100 entries (MAX_HISTORY).
+    Falls back to demo signals when no live data is available.
     """
-    return {"signals": signal_history, "count": len(signal_history)}
+    if signal_history:
+        return {"signals": signal_history, "count": len(signal_history)}
+    return {"signals": _demo_signals(), "count": len(_demo_signals())}
 
 
 @app.get("/api/scanner/status")
