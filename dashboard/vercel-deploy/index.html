@@ -3,2532 +3,344 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EV Scanner — Dashboard (Demo)</title>
+<title>EV Scanner</title>
 <style>
-/* ===== RESET & BASE ===== */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-card: #12121a;
-  --bg-card-hover: #1a1a26;
-  --bg-elevated: #16161f;
-  --bg-sidebar: #0e0e15;
+  --bg: #0a0a0f;
+  --card: #12121a;
+  --card-hover: #16161f;
   --border: rgba(255,255,255,0.06);
-  --border-light: rgba(255,255,255,0.1);
   --accent: #00d4aa;
-  --accent-dim: rgba(0,212,170,0.12);
-  --accent-glow: rgba(0,212,170,0.4);
-  --green: #00d4aa;
-  --green-dim: rgba(0,212,170,0.12);
-  --blue: #4ecdc4;
-  --blue-dim: rgba(78,205,196,0.12);
-  --amber: #ffe66d;
-  --amber-dim: rgba(255,230,109,0.12);
-  --red: #ff6b6b;
-  --red-dim: rgba(255,107,107,0.12);
-  --purple: #a78bfa;
-  --purple-dim: rgba(167,139,250,0.12);
+  --accent-dim: rgba(0,212,170,0.1);
   --grade-a: #00d4aa;
   --grade-b: #4ecdc4;
   --grade-c: #ffe66d;
   --grade-d: #ff6b6b;
-  --text-primary: #f0f0f5;
-  --text-secondary: #8a8a9a;
-  --text-muted: #55556a;
+  --text: #f0f0f5;
+  --text2: #8a8a9a;
+  --text3: #55556a;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  --radius: 10px;
-  --radius-sm: 6px;
-  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --sidebar-w: 240px;
 }
 
-html { font-size: 14px; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
 
-body {
-  font-family: var(--font);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(0,212,170,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,212,170,0.015) 1px, transparent 1px);
-  background-size: 50px 50px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
-
-/* ===== SIDEBAR ===== */
-.sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: var(--sidebar-w);
-  height: 100vh;
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  z-index: 100;
-  transition: transform 0.3s ease;
-}
-
-.sidebar-header {
-  padding: 20px 18px;
+/* Header */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px;
+  background: rgba(10,10,15,0.85); backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
 }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); animation: pulse 2s infinite; }
+.logo-text { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-.sidebar-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.header-right { display: flex; align-items: center; gap: 16px; }
+.conn { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+.conn-dot { width: 7px; height: 7px; border-radius: 50%; background: #444; }
+.conn-dot.on { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.count-badge { font-family: var(--mono); font-size: 13px; color: var(--accent); background: var(--accent-dim); padding: 4px 12px; border-radius: 20px; }
+
+/* Filters */
+.filters {
+  display: flex; align-items: center; gap: 10px; padding: 12px 24px;
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
 }
-
-.logo-icon {
-  width: 34px;
-  height: 34px;
-  background: linear-gradient(135deg, var(--accent), #4ecdc4);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
+.filter-select, .filter-input {
+  background: var(--card); border: 1px solid var(--border); color: var(--text);
+  padding: 6px 12px; border-radius: 6px; font-size: 12px; font-family: var(--font);
+  outline: none;
 }
+.filter-select:focus, .filter-input:focus { border-color: rgba(0,212,170,0.3); }
+.filter-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
 
-.logo-icon svg { width: 18px; height: 18px; fill: #fff; }
+/* Signal cards */
+.signals { padding: 16px 24px; display: flex; flex-direction: column; gap: 12px; max-width: 900px; margin: 0 auto; }
 
-.logo-text {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: var(--text-primary);
+.signal {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden; transition: border-color 0.2s;
 }
+.signal:hover { border-color: rgba(255,255,255,0.1); }
+.signal.grade-A { border-left: 3px solid var(--grade-a); }
+.signal.grade-B { border-left: 3px solid var(--grade-b); }
+.signal.grade-C { border-left: 3px solid var(--grade-c); }
+.signal.grade-D { border-left: 3px solid var(--grade-d); }
 
-.logo-sub {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-muted);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+.signal-top { display: flex; align-items: flex-start; padding: 16px 20px 12px; gap: 14px; }
+.grade-lg {
+  width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 18px; flex-shrink: 0;
 }
-
-.sidebar-nav {
-  flex: 1;
-  padding: 12px 10px;
-  overflow-y: auto;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: var(--transition);
-  font-size: 13px;
-  font-weight: 500;
-  user-select: none;
-  margin-bottom: 2px;
-  text-decoration: none;
-}
-
-.nav-item:hover {
-  background: rgba(255,255,255,0.04);
-  color: var(--text-primary);
-}
-
-.nav-item.active {
-  background: var(--accent-dim);
-  color: var(--accent);
-}
-
-.nav-item svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-
-.nav-item.active svg { opacity: 1; }
-
-.nav-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); padding: 16px 12px 6px; }
-
-.sidebar-footer {
-  padding: 14px 16px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.scanner-pulse {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.pulse-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  position: relative;
-}
-
-.pulse-dot::after {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  background: var(--accent);
-  opacity: 0.4;
-  animation: pulse-ring 2s ease-out infinite;
-}
-
-.pulse-dot.offline { background: var(--red); }
-.pulse-dot.offline::after { display: none; }
-
-@keyframes pulse-ring {
-  0% { transform: scale(1); opacity: 0.4; }
-  100% { transform: scale(2.5); opacity: 0; }
-}
-
-.conn-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.conn-status.connected { color: var(--green); background: var(--green-dim); }
-.conn-status.disconnected { color: var(--red); background: var(--red-dim); }
-.conn-status.connecting { color: var(--amber); background: var(--amber-dim); }
-
-.conn-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
-
-/* Mobile hamburger */
-.hamburger {
-  display: none;
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 200;
-  width: 36px;
-  height: 36px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-primary);
-}
-
-.hamburger svg { width: 20px; height: 20px; }
-
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  z-index: 90;
-}
-
-/* ===== MAIN CONTENT ===== */
-.main-content {
-  margin-left: var(--sidebar-w);
-  min-height: 100vh;
-  position: relative;
-  z-index: 1;
-}
-
-.page-header {
-  padding: 20px 28px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-}
-
-.page-subtitle {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-.page-body {
-  padding: 20px 28px 40px;
-}
-
-/* ===== PAGE CONTAINERS ===== */
-.page { display: none; }
-.page.active { display: block; }
-
-/* ===== COMMON: CARDS ===== */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  transition: var(--transition);
-}
-
-.card:hover { border-color: var(--border-light); }
-
-.card-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-/* ===== STAT CARDS ===== */
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-  position: relative;
-  overflow: hidden;
-  transition: var(--transition);
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  opacity: 0.7;
-}
-
-.stat-card:hover { border-color: var(--border-light); background: var(--bg-card-hover); }
-
-.stat-card.c-green::before { background: linear-gradient(90deg, var(--green), var(--blue)); }
-.stat-card.c-blue::before { background: linear-gradient(90deg, var(--blue), var(--purple)); }
-.stat-card.c-amber::before { background: linear-gradient(90deg, var(--amber), var(--green)); }
-.stat-card.c-red::before { background: linear-gradient(90deg, var(--red), var(--amber)); }
-.stat-card.c-purple::before { background: linear-gradient(90deg, var(--purple), var(--blue)); }
-
-.stat-label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  font-family: var(--mono);
-  color: var(--text-primary);
-  line-height: 1.2;
-}
-
-.stat-value.positive { color: var(--green); }
-.stat-value.negative { color: var(--red); }
-
-.stat-sub {
-  font-size: 10px;
-  color: var(--text-muted);
-  margin-top: 4px;
-  font-family: var(--mono);
-}
-
-/* ===== GRID LAYOUTS ===== */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
-.grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; }
-
-.mb-14 { margin-bottom: 14px; }
-.mb-20 { margin-bottom: 20px; }
-
-/* ===== CHART CONTAINERS ===== */
-.chart-wrap {
-  position: relative;
-  width: 100%;
-}
-
-.chart-wrap canvas {
-  width: 100% !important;
-  height: 100%;
-  display: block;
-}
-
-/* ===== TABLES ===== */
-.table-wrap {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--text-muted);
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-
-td {
-  font-size: 12px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-secondary);
-  white-space: nowrap;
-  font-family: var(--mono);
-}
-
-tr:hover td { background: rgba(255,255,255,0.015); }
-
-/* ===== BADGES ===== */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  font-family: var(--font);
-}
-
-.badge.won { background: var(--green-dim); color: var(--green); }
-.badge.lost { background: var(--red-dim); color: var(--red); }
-.badge.pending { background: var(--amber-dim); color: var(--amber); }
-.badge.approved { background: var(--green-dim); color: var(--green); }
-.badge.rejected { background: var(--red-dim); color: var(--red); }
-
-.badge-grade {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
-  font-size: 12px;
-  font-weight: 800;
-  font-family: var(--font);
-}
-
-.badge-grade.grade-A { background: rgba(0,212,170,0.18); color: var(--grade-a); }
-.badge-grade.grade-B { background: rgba(78,205,196,0.18); color: var(--grade-b); }
-.badge-grade.grade-C { background: rgba(255,230,109,0.18); color: var(--grade-c); }
-.badge-grade.grade-D { background: rgba(255,107,107,0.18); color: var(--grade-d); }
-
-/* ===== BUTTONS ===== */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  transition: var(--transition);
-  font-family: var(--font);
-  white-space: nowrap;
-}
-
-.btn:hover { background: var(--bg-card-hover); border-color: var(--border-light); color: var(--text-primary); }
-
-.btn-accent {
-  background: var(--accent-dim);
-  border-color: rgba(0,212,170,0.25);
-  color: var(--accent);
-}
-
-.btn-accent:hover { background: rgba(0,212,170,0.2); border-color: rgba(0,212,170,0.4); }
-
-.btn-danger {
-  background: var(--red-dim);
-  border-color: rgba(255,107,107,0.25);
-  color: var(--red);
-}
-
-.btn-danger:hover { background: rgba(255,107,107,0.2); }
-
-.btn-sm { padding: 4px 10px; font-size: 11px; }
-
-.btn-group { display: flex; gap: 6px; }
-
-/* ===== SIGNAL CARDS ===== */
-.signals-container { display: flex; flex-direction: column; gap: 12px; }
-
-.signal-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  transition: border-color var(--transition), background var(--transition);
-  animation: card-enter 0.4s cubic-bezier(0.16,1,0.3,1) both;
-}
-
-.signal-card:hover { border-color: var(--border-light); background: var(--bg-card-hover); }
-.signal-card.grade-A { border-left: 3px solid var(--grade-a); }
-.signal-card.grade-B { border-left: 3px solid var(--grade-b); }
-.signal-card.grade-C { border-left: 3px solid var(--grade-c); }
-.signal-card.grade-D { border-left: 3px solid var(--grade-d); }
-
-@keyframes card-enter {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.signal-main { padding: 16px 18px; }
-
-.signal-top {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  margin-bottom: 12px;
-}
-
-.grade-badge-large {
-  width: 46px;
-  height: 46px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-
-.grade-badge-large.grade-A { background: rgba(0,212,170,0.15); color: var(--grade-a); box-shadow: 0 0 20px rgba(0,212,170,0.1); }
-.grade-badge-large.grade-B { background: rgba(78,205,196,0.15); color: var(--grade-b); }
-.grade-badge-large.grade-C { background: rgba(255,230,109,0.15); color: var(--grade-c); }
-.grade-badge-large.grade-D { background: rgba(255,107,107,0.15); color: var(--grade-d); }
+.grade-lg.A { background: rgba(0,212,170,0.12); color: var(--grade-a); }
+.grade-lg.B { background: rgba(78,205,196,0.12); color: var(--grade-b); }
+.grade-lg.C { background: rgba(255,230,109,0.12); color: var(--grade-c); }
+.grade-lg.D { background: rgba(255,107,107,0.12); color: var(--grade-d); }
 
 .match-info { flex: 1; min-width: 0; }
+.teams { font-size: 16px; font-weight: 600; line-height: 1.3; }
+.teams .vs { color: var(--text3); font-weight: 400; font-size: 12px; margin: 0 6px; }
+.meta { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.meta span { font-size: 12px; color: var(--text2); }
+.meta .sep { color: var(--text3); }
 
-.match-teams {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-  margin-bottom: 3px;
-}
+.rec-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+.rec-badge.strong-buy { background: rgba(0,212,170,0.12); color: var(--grade-a); }
+.rec-badge.buy { background: rgba(78,205,196,0.12); color: var(--grade-b); }
+.rec-badge.hold { background: rgba(255,230,109,0.12); color: var(--grade-c); }
+.rec-badge.skip { background: rgba(255,107,107,0.12); color: var(--grade-d); }
 
-.match-teams .vs { color: var(--text-muted); font-weight: 400; margin: 0 5px; font-size: 12px; }
-
-.match-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.match-meta-item { font-size: 11px; color: var(--text-secondary); }
-.match-meta-sep { width: 3px; height: 3px; border-radius: 50%; background: var(--text-muted); }
-
-.signal-top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
-
-.recommendation-badge {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 4px 10px;
-  border-radius: 5px;
-}
-
-.recommendation-badge.strong-buy { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,212,170,0.25); }
-.recommendation-badge.buy { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(78,205,196,0.25); }
-.recommendation-badge.hold { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,230,109,0.25); }
-.recommendation-badge.skip { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,107,107,0.25); }
-
-.signal-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
+/* Metrics row */
+.metrics { display: flex; gap: 1px; background: var(--border); }
 .metric {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px;
-  text-align: center;
+  flex: 1; padding: 10px 16px; background: var(--card); text-align: center;
 }
+.metric-val { font-family: var(--mono); font-size: 16px; font-weight: 700; }
+.metric-val.ev { color: var(--accent); }
+.metric-val.odds { color: var(--text); }
+.metric-val.prob { color: #a78bfa; }
+.metric-val.edge { color: var(--grade-b); }
+.metric-lbl { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 
-.metric-value {
-  font-size: 18px;
-  font-weight: 700;
-  font-family: var(--mono);
-  line-height: 1.2;
+/* Selection row */
+.selection-row {
+  display: flex; align-items: center; justify-content: space-between; padding: 10px 20px;
+  border-top: 1px solid var(--border); background: rgba(255,255,255,0.01);
 }
+.sel-item { font-size: 12px; color: var(--text2); }
+.sel-item .val { color: var(--text); font-weight: 500; }
+.sel-item .val.green { color: var(--accent); }
 
-.metric-value.ev { color: var(--green); }
-.metric-value.odds { color: var(--text-primary); }
-.metric-value.prob { color: var(--blue); }
-.metric-value.edge { color: var(--amber); }
-
-.metric-label {
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: var(--text-muted);
-  margin-top: 3px;
+/* Expandable explanation */
+.explain-toggle {
+  display: flex; align-items: center; justify-content: center; padding: 8px;
+  border-top: 1px solid var(--border); cursor: pointer; color: var(--text3); font-size: 12px;
+  transition: color 0.2s, background 0.2s; gap: 4px; user-select: none;
 }
-
-.grade-badges-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-
-.grade-badge-sm {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.grade-badge-sm.grade-A { background: rgba(0,212,170,0.1); color: var(--grade-a); }
-.grade-badge-sm.grade-B { background: rgba(78,205,196,0.1); color: var(--grade-b); }
-.grade-badge-sm.grade-C { background: rgba(255,230,109,0.1); color: var(--grade-c); }
-.grade-badge-sm.grade-D { background: rgba(255,107,107,0.1); color: var(--grade-d); }
-
-.grade-badge-sm .bg { font-weight: 800; }
-
-/* Expandable */
-.signal-expand {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.4s cubic-bezier(0.16,1,0.3,1), opacity 0.3s ease;
-  opacity: 0;
-}
-
-.signal-card.expanded .signal-expand { max-height: 600px; opacity: 1; }
-
-.signal-expand-inner {
-  padding: 0 18px 16px;
-  border-top: 1px solid var(--border);
-  padding-top: 14px;
-}
-
-.explanation-header {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.explanation-summary {
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-sm);
-  border-left: 3px solid var(--accent);
-}
-
-.reason-list, .risk-list { list-style: none; display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
-.reason-list li { font-size: 11px; color: var(--text-secondary); display: flex; align-items: flex-start; gap: 6px; line-height: 1.5; }
-.reason-list li::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--green); flex-shrink: 0; margin-top: 5px; }
-.risk-list li { font-size: 11px; color: var(--amber); padding: 5px 8px; background: var(--amber-dim); border-radius: 4px; }
-
-.signal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 18px;
-  background: rgba(0,0,0,0.12);
-  border-top: 1px solid var(--border);
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.signal-footer-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.signal-footer-item {
-  font-size: 10px;
-  color: var(--text-muted);
-  font-family: var(--mono);
-}
-
-.signal-footer-item .val { color: var(--text-secondary); font-weight: 600; }
-
-.signal-actions { display: flex; gap: 6px; }
-
-/* ===== FILTER BAR ===== */
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-  padding: 10px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.filter-bar select, .filter-bar input {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: 12px;
-  padding: 6px 10px;
-  font-family: var(--font);
-  outline: none;
-  transition: var(--transition);
-}
-
-.filter-bar select:focus, .filter-bar input:focus { border-color: var(--accent); }
-
-.filter-bar label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-muted);
-}
-
-.filter-group { display: flex; align-items: center; gap: 4px; }
-
-/* ===== STATUS DOTS ===== */
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.status-dot.green { background: var(--green); box-shadow: 0 0 6px var(--accent-glow); }
-.status-dot.yellow { background: var(--amber); box-shadow: 0 0 6px rgba(255,230,109,0.4); }
-.status-dot.red { background: var(--red); box-shadow: 0 0 6px rgba(255,107,107,0.4); }
-
-/* ===== PROGRESS BAR ===== */
-.progress-bar {
-  height: 6px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: var(--accent);
-  transition: width 0.5s ease;
-}
-
-/* ===== GAUGE ===== */
-.gauge-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-}
-
-/* ===== TOAST ===== */
-.toast-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.toast {
-  padding: 10px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-  animation: toast-in 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.toast.success { border-left: 3px solid var(--green); }
-.toast.error { border-left: 3px solid var(--red); }
-.toast.info { border-left: 3px solid var(--blue); }
-
-@keyframes toast-in {
-  from { opacity: 0; transform: translateX(40px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-/* ===== LOADING ===== */
-.loading-spinner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  color: var(--text-muted);
-  font-size: 12px;
-  gap: 8px;
-}
-
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ===== PAGINATION ===== */
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 16px;
-}
-
-.pagination .btn { min-width: 34px; justify-content: center; }
-.pagination .btn.active { background: var(--accent-dim); color: var(--accent); border-color: rgba(0,212,170,0.3); }
-
-/* ===== SETTINGS FORM ===== */
-.settings-section { margin-bottom: 24px; }
-.settings-section-title {
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.setting-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.setting-row:last-child { border-bottom: none; }
-
-.setting-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.setting-label small {
-  display: block;
-  font-size: 10px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-.setting-control input[type="number"],
-.setting-control input[type="text"] {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: 13px;
-  padding: 6px 10px;
-  width: 120px;
-  font-family: var(--mono);
-  outline: none;
-  text-align: right;
-}
-
-.setting-control input:focus { border-color: var(--accent); }
-
-/* Toggle switch */
-.toggle {
-  position: relative;
-  width: 38px;
-  height: 20px;
-  cursor: pointer;
-}
-
-.toggle input { display: none; }
-
-.toggle-slider {
-  position: absolute;
-  inset: 0;
-  background: rgba(255,255,255,0.08);
-  border-radius: 10px;
-  transition: var(--transition);
-}
-
-.toggle-slider::before {
-  content: '';
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  left: 2px;
-  top: 2px;
-  background: var(--text-muted);
-  border-radius: 50%;
-  transition: var(--transition);
-}
-
-.toggle input:checked + .toggle-slider { background: var(--accent-dim); }
-.toggle input:checked + .toggle-slider::before { transform: translateX(18px); background: var(--accent); }
-
-/* ===== MODEL CARDS ===== */
-.model-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
-}
-
-.model-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  transition: var(--transition);
-}
-
-.model-card:hover { border-color: var(--border-light); }
-
-.model-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.model-name {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.model-metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.model-metric {
-  text-align: center;
-  padding: 8px 4px;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-sm);
-}
-
-.model-metric .mv { font-size: 15px; font-weight: 700; font-family: var(--mono); color: var(--text-primary); }
-.model-metric .ml { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-top: 2px; }
-
-.model-meta {
-  font-size: 10px;
-  color: var(--text-muted);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 10px;
-  font-family: var(--mono);
-}
-
-/* ===== INGESTION ===== */
-.source-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-}
-
-.source-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.source-name {
-  font-size: 14px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.freshness-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.freshness-label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  min-width: 70px;
-}
-
-.freshness-time {
-  font-size: 11px;
-  font-family: var(--mono);
-  color: var(--text-secondary);
-}
-
-.log-table-wrap {
-  max-height: 360px;
-  overflow-y: auto;
-}
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 1024px) {
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
-  .signal-metrics { grid-template-columns: repeat(2, 1fr); }
-  .grid-2, .grid-2-1, .grid-1-2 { grid-template-columns: 1fr; }
-  .model-grid { grid-template-columns: 1fr 1fr; }
-}
-
-@media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); }
-  .sidebar-overlay.open { display: block; }
-  .hamburger { display: flex; }
-  .main-content { margin-left: 0; }
-  .page-body { padding: 16px; }
-  .page-header { padding: 16px 16px 0; padding-top: 52px; }
-  .stat-grid { grid-template-columns: 1fr 1fr; }
-  .grid-3 { grid-template-columns: 1fr; }
-  .model-grid { grid-template-columns: 1fr; }
-  .filter-bar { flex-direction: column; align-items: stretch; }
-}
-
-@media (max-width: 480px) {
-  .stat-grid { grid-template-columns: 1fr; }
+.explain-toggle:hover { color: var(--text2); background: rgba(255,255,255,0.02); }
+.explain-toggle .arrow { transition: transform 0.2s; }
+.signal.open .explain-toggle .arrow { transform: rotate(180deg); }
+
+.explain { display: none; padding: 16px 20px; border-top: 1px solid var(--border); background: rgba(0,212,170,0.02); }
+.signal.open .explain { display: block; }
+.explain h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text3); margin: 12px 0 6px; }
+.explain h4:first-child { margin-top: 0; }
+.explain .summary { font-size: 13px; color: var(--text); line-height: 1.5; margin-bottom: 4px; }
+.explain ul { list-style: none; padding: 0; }
+.explain li { font-size: 12px; color: var(--text2); padding: 3px 0 3px 16px; position: relative; line-height: 1.4; }
+.explain li::before { content: ''; position: absolute; left: 0; top: 10px; width: 6px; height: 6px; border-radius: 50%; }
+.reason-list li::before { background: var(--accent); }
+.risk-list li::before { background: var(--grade-d); opacity: 0.6; }
+
+/* Empty state */
+.empty { text-align: center; padding: 80px 20px; color: var(--text3); }
+.empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+.empty-text { font-size: 14px; }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .header { padding: 12px 16px; }
+  .filters { padding: 10px 16px; }
+  .signals { padding: 12px 16px; }
+  .signal-top { padding: 12px 14px 10px; }
+  .metric { padding: 8px 10px; }
+  .metric-val { font-size: 14px; }
+  .teams { font-size: 14px; }
+  .selection-row { padding: 8px 14px; flex-wrap: wrap; gap: 8px; }
 }
 </style>
 </head>
 <body>
 
-<!-- Hamburger -->
-<button class="hamburger" onclick="toggleSidebar()">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-</button>
-
-<!-- Sidebar Overlay -->
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
-<!-- Sidebar -->
-<nav class="sidebar" id="sidebar">
-  <div class="sidebar-header">
-    <div class="sidebar-logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      </div>
-      <div>
-        <div class="logo-text">EV Scanner</div>
-        <div class="logo-sub">Betting Terminal</div>
-      </div>
-    </div>
+<div class="header">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <div class="logo-text">EV Scanner</div>
   </div>
-
-  <div class="sidebar-nav">
-    <div class="nav-label">Menu</div>
-    <a class="nav-item active" data-page="overview" onclick="navigate('overview')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Overview
-    </a>
-    <a class="nav-item" data-page="signals" onclick="navigate('signals')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      Live Signals
-    </a>
-    <a class="nav-item" data-page="history" onclick="navigate('history')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      Bet History
-    </a>
-    <a class="nav-item" data-page="models" onclick="navigate('models')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      Models
-    </a>
-    <a class="nav-item" data-page="ingestion" onclick="navigate('ingestion')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Data Ingestion
-    </a>
-
-    <div class="nav-label">System</div>
-    <a class="nav-item" data-page="settings" onclick="navigate('settings')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-      Settings
-    </a>
-  </div>
-
-  <div class="sidebar-footer">
-    <div class="scanner-pulse">
-      <div class="pulse-dot" id="scannerPulse"></div>
-      <span id="scannerLabel">Scanner Active</span>
-    </div>
-    <div class="conn-status connecting" id="connStatus">
-      <div class="conn-dot"></div>
+  <div class="header-right">
+    <div class="count-badge" id="countBadge">0 picks</div>
+    <div class="conn">
+      <div class="conn-dot" id="connDot"></div>
       <span id="connLabel">Connecting</span>
     </div>
   </div>
-</nav>
+</div>
 
-<!-- Main Content -->
-<div class="main-content">
-
-<!-- ========== OVERVIEW PAGE ========== -->
-<div class="page active" id="page-overview">
-  <div class="page-header">
-    <div><div class="page-title">Overview</div><div class="page-subtitle">Portfolio performance and activity</div></div>
+<div class="filters">
+  <div>
+    <div class="filter-label">League</div>
+    <select class="filter-select" id="fLeague">
+      <option value="">All Leagues</option>
+    </select>
   </div>
-  <div class="page-body">
-    <div class="stat-grid" id="overviewStats">
-      <div class="stat-card c-green">
-        <div class="stat-label">Bankroll</div>
-        <div class="stat-value" id="ov-bankroll">--</div>
-        <div class="stat-sub" id="ov-bankroll-sub">Peak: --</div>
-      </div>
-      <div class="stat-card c-blue">
-        <div class="stat-label">Today's P&L</div>
-        <div class="stat-value" id="ov-pnl">--</div>
-        <div class="stat-sub" id="ov-pnl-sub">--</div>
-      </div>
-      <div class="stat-card c-amber">
-        <div class="stat-label">Active Signals</div>
-        <div class="stat-value" id="ov-signals">--</div>
-        <div class="stat-sub" id="ov-signals-sub">--</div>
-      </div>
-      <div class="stat-card c-red">
-        <div class="stat-label">Daily Exposure</div>
-        <div class="stat-value" id="ov-exposure">--</div>
-        <div class="stat-sub" id="ov-exposure-sub">Max drawdown: --</div>
-      </div>
-    </div>
-
-    <div class="grid-2-1 mb-20">
-      <div class="card">
-        <div class="card-title">Equity Curve</div>
-        <div class="chart-wrap" style="height:240px;">
-          <canvas id="equityCurveChart"></canvas>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Grade Breakdown</div>
-        <div id="gradeBreakdown" style="padding:10px 0;"></div>
-        <div class="card-title" style="margin-top:16px;">Exposure Gauge</div>
-        <div class="gauge-container">
-          <canvas id="exposureGauge" width="160" height="100"></canvas>
-          <div style="font-family:var(--mono);font-size:18px;font-weight:700;margin-top:6px;" id="gaugeLabel">0%</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Recent Bets</div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Time</th><th>Match</th><th>Market</th><th>Odds</th><th>Stake</th><th>EV%</th><th>Grade</th><th>Status</th><th>P&L</th></tr>
-          </thead>
-          <tbody id="recentBetsBody">
-            <tr><td colspan="9" class="loading-spinner"><div class="spinner"></div>Loading...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <div>
+    <div class="filter-label">Market</div>
+    <select class="filter-select" id="fMarket">
+      <option value="">All Markets</option>
+      <option value="team_corners_ou">Corners O/U</option>
+      <option value="team_offsides_ou">Offsides O/U</option>
+      <option value="team_goals_ou">Goals O/U</option>
+      <option value="btts">BTTS</option>
+      <option value="player_shots_ou">Player Shots</option>
+      <option value="player_shots_on_target_ou">Player SOT</option>
+      <option value="player_tackles_ou">Player Tackles</option>
+      <option value="player_passes_ou">Player Passes</option>
+      <option value="player_fouls_ou">Player Fouls</option>
+      <option value="player_offsides_ou">Player Offsides</option>
+      <option value="anytime_goalscorer">Goalscorer</option>
+      <option value="player_cards">Player Cards</option>
+    </select>
+  </div>
+  <div>
+    <div class="filter-label">Min EV%</div>
+    <input class="filter-input" id="fMinEV" type="number" min="0" max="50" step="0.5" value="0" style="width:70px;">
+  </div>
+  <div>
+    <div class="filter-label">Grade</div>
+    <select class="filter-select" id="fGrade">
+      <option value="">All</option>
+      <option value="A">A</option>
+      <option value="B">B</option>
+      <option value="C">C</option>
+      <option value="D">D</option>
+    </select>
+  </div>
+  <div>
+    <div class="filter-label">Sort</div>
+    <select class="filter-select" id="fSort">
+      <option value="ev">Highest EV</option>
+      <option value="grade">Best Grade</option>
+      <option value="kickoff">Kickoff Time</option>
+    </select>
   </div>
 </div>
 
-<!-- ========== LIVE SIGNALS PAGE ========== -->
-<div class="page" id="page-signals">
-  <div class="page-header">
-    <div><div class="page-title">Live Signals</div><div class="page-subtitle" id="signalCountHeader">0 active signals</div></div>
-  </div>
-  <div class="page-body">
-    <div class="filter-bar">
-      <div class="filter-group">
-        <label>League</label>
-        <select id="filterLeague"><option value="">All Leagues</option></select>
-      </div>
-      <div class="filter-group">
-        <label>Market</label>
-        <select id="filterMarket"><option value="">All Markets</option></select>
-      </div>
-      <div class="filter-group">
-        <label>Min EV%</label>
-        <input type="number" id="filterMinEV" placeholder="0" style="width:70px;" value="0">
-      </div>
-      <div class="filter-group">
-        <label>Grade</label>
-        <select id="filterGrade"><option value="">All</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
-      </div>
-      <div class="filter-group">
-        <label>Sort</label>
-        <select id="filterSort">
-          <option value="ev_desc">EV% High-Low</option>
-          <option value="grade_asc">Grade A-D</option>
-          <option value="kickoff_asc">Kickoff Soonest</option>
-        </select>
-      </div>
-    </div>
-    <div class="signals-container" id="signalsContainer">
-      <div class="loading-spinner"><div class="spinner"></div>Loading signals...</div>
-    </div>
+<div class="signals" id="signals">
+  <div class="empty">
+    <div class="empty-icon">&#9898;</div>
+    <div class="empty-text">Scanning for value...</div>
   </div>
 </div>
-
-<!-- ========== BET HISTORY PAGE ========== -->
-<div class="page" id="page-history">
-  <div class="page-header">
-    <div><div class="page-title">Bet History</div><div class="page-subtitle">Complete betting record and analytics</div></div>
-  </div>
-  <div class="page-body">
-    <div class="filter-bar">
-      <div class="filter-group">
-        <label>League</label>
-        <select id="histLeague"><option value="">All Leagues</option></select>
-      </div>
-      <div class="filter-group">
-        <label>Market</label>
-        <select id="histMarket"><option value="">All Markets</option></select>
-      </div>
-      <div class="filter-group">
-        <label>Status</label>
-        <select id="histStatus"><option value="">All</option><option value="won">Won</option><option value="lost">Lost</option><option value="pending">Pending</option></select>
-      </div>
-      <div class="filter-group" style="margin-left:auto;">
-        <span style="font-size:11px;color:var(--text-muted);font-family:var(--mono);" id="histTotal">0 bets</span>
-      </div>
-    </div>
-
-    <div class="stat-grid mb-20" id="historyStats">
-      <div class="stat-card c-green"><div class="stat-label">Total P&L</div><div class="stat-value" id="hist-pnl">--</div></div>
-      <div class="stat-card c-blue"><div class="stat-label">ROI</div><div class="stat-value" id="hist-roi">--</div></div>
-      <div class="stat-card c-amber"><div class="stat-label">Win Rate</div><div class="stat-value" id="hist-winrate">--</div></div>
-      <div class="stat-card c-purple"><div class="stat-label">Total Bets</div><div class="stat-value" id="hist-count">--</div></div>
-    </div>
-
-    <div class="grid-2 mb-20">
-      <div class="card">
-        <div class="card-title">Cumulative P&L</div>
-        <div class="chart-wrap" style="height:200px;"><canvas id="cumPnlChart"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Win / Loss Ratio</div>
-        <div class="chart-wrap" style="height:200px;"><canvas id="winLossDonut"></canvas></div>
-      </div>
-    </div>
-
-    <div class="grid-2 mb-20">
-      <div class="card">
-        <div class="card-title">ROI by Market Type</div>
-        <div class="chart-wrap" style="height:200px;"><canvas id="roiByMarketChart"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title">ROI by League</div>
-        <div class="chart-wrap" style="height:200px;"><canvas id="roiByLeagueChart"></canvas></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Bet Log</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Date</th><th>Match</th><th>League</th><th>Market</th><th>Selection</th><th>Odds</th><th>Stake</th><th>EV%</th><th>Grade</th><th>Status</th><th>P&L</th></tr></thead>
-          <tbody id="historyTableBody">
-            <tr><td colspan="11" class="loading-spinner"><div class="spinner"></div>Loading...</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="pagination" id="historyPagination"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ========== MODELS PAGE ========== -->
-<div class="page" id="page-models">
-  <div class="page-header">
-    <div><div class="page-title">Models</div><div class="page-subtitle">Prediction model status and performance</div></div>
-  </div>
-  <div class="page-body">
-    <div class="model-grid" id="modelsGrid">
-      <div class="loading-spinner"><div class="spinner"></div>Loading models...</div>
-    </div>
-  </div>
-</div>
-
-<!-- ========== DATA INGESTION PAGE ========== -->
-<div class="page" id="page-ingestion">
-  <div class="page-header">
-    <div><div class="page-title">Data Ingestion</div><div class="page-subtitle">API sources, entity resolution, and data freshness</div></div>
-  </div>
-  <div class="page-body">
-    <div class="grid-3 mb-20" id="sourcesGrid">
-      <div class="loading-spinner"><div class="spinner"></div>Loading...</div>
-    </div>
-
-    <div class="grid-2 mb-20">
-      <div class="card">
-        <div class="card-title">Entity Resolution</div>
-        <div id="entityResolution">
-          <div class="loading-spinner"><div class="spinner"></div>Loading...</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Record Counts</div>
-        <div id="recordCounts">
-          <div class="loading-spinner"><div class="spinner"></div>Loading...</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div class="card-title" style="margin-bottom:0;">Ingestion Log</div>
-        <button class="btn btn-accent btn-sm" onclick="triggerIngest()">Ingest Now</button>
-      </div>
-      <div class="log-table-wrap">
-        <table>
-          <thead><tr><th>Timestamp</th><th>Source</th><th>Type</th><th>Records</th><th>Duration</th><th>Status</th></tr></thead>
-          <tbody id="ingestionLogBody">
-            <tr><td colspan="6" class="loading-spinner"><div class="spinner"></div>Loading...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ========== SETTINGS PAGE ========== -->
-<div class="page" id="page-settings">
-  <div class="page-header">
-    <div><div class="page-title">Settings</div><div class="page-subtitle">System configuration and preferences</div></div>
-    <button class="btn btn-accent" onclick="saveSettings()">Save Settings</button>
-  </div>
-  <div class="page-body">
-    <div class="grid-2">
-      <div>
-        <div class="card mb-20">
-          <div class="settings-section">
-            <div class="settings-section-title">Risk Parameters</div>
-            <div class="setting-row">
-              <div class="setting-label">EV Threshold<small>Minimum EV% to generate signal</small></div>
-              <div class="setting-control"><input type="number" id="set-ev-threshold" step="0.5" value="3"></div>
-            </div>
-            <div class="setting-row">
-              <div class="setting-label">Kelly Fraction<small>Fraction of full Kelly criterion</small></div>
-              <div class="setting-control"><input type="number" id="set-kelly" step="0.05" value="0.25"></div>
-            </div>
-            <div class="setting-row">
-              <div class="setting-label">Max Stake %<small>Maximum % of bankroll per bet</small></div>
-              <div class="setting-control"><input type="number" id="set-max-stake" step="0.5" value="5"></div>
-            </div>
-            <div class="setting-row">
-              <div class="setting-label">Bankroll Amount (DKK)<small>Current bankroll size</small></div>
-              <div class="setting-control"><input type="number" id="set-bankroll" step="100" value="10000"></div>
-            </div>
-            <div class="setting-row">
-              <div class="setting-label">Min Odds</div>
-              <div class="setting-control"><input type="number" id="set-min-odds" step="0.1" value="1.3"></div>
-            </div>
-            <div class="setting-row">
-              <div class="setting-label">Max Odds</div>
-              <div class="setting-control"><input type="number" id="set-max-odds" step="0.1" value="8.0"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="settings-section">
-            <div class="settings-section-title">API Health</div>
-            <div id="apiHealthRows">
-              <div class="setting-row"><div class="setting-label">Optic Odds</div><div><span class="status-dot green"></span></div></div>
-              <div class="setting-row"><div class="setting-label">The Odds API</div><div><span class="status-dot green"></span></div></div>
-              <div class="setting-row"><div class="setting-label">SportMonks</div><div><span class="status-dot green"></span></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div class="card mb-20">
-          <div class="settings-section">
-            <div class="settings-section-title">Leagues</div>
-            <div id="leagueToggles">
-              <div class="setting-row"><div class="setting-label">&#127468;&#127463; Premier League</div><div class="toggle"><input type="checkbox" checked data-league="premier_league"><span class="toggle-slider"></span></div></div>
-              <div class="setting-row"><div class="setting-label">&#127466;&#127480; La Liga</div><div class="toggle"><input type="checkbox" checked data-league="la_liga"><span class="toggle-slider"></span></div></div>
-              <div class="setting-row"><div class="setting-label">&#127465;&#127466; Bundesliga</div><div class="toggle"><input type="checkbox" checked data-league="bundesliga"><span class="toggle-slider"></span></div></div>
-              <div class="setting-row"><div class="setting-label">&#127470;&#127481; Serie A</div><div class="toggle"><input type="checkbox" checked data-league="serie_a"><span class="toggle-slider"></span></div></div>
-              <div class="setting-row"><div class="setting-label">&#127467;&#127479; Ligue 1</div><div class="toggle"><input type="checkbox" checked data-league="ligue_1"><span class="toggle-slider"></span></div></div>
-              <div class="setting-row"><div class="setting-label">&#127465;&#127472; Danish Superliga</div><div class="toggle"><input type="checkbox" checked data-league="danish_superliga"><span class="toggle-slider"></span></div></div>
-              <div class="setting-row"><div class="setting-label">&#127480;&#127466; Allsvenskan</div><div class="toggle"><input type="checkbox" checked data-league="allsvenskan"><span class="toggle-slider"></span></div></div>
-              <div class="setting-row"><div class="setting-label">&#127475;&#127476; Eliteserien</div><div class="toggle"><input type="checkbox" checked data-league="eliteserien"><span class="toggle-slider"></span></div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="settings-section">
-            <div class="settings-section-title">Bookmakers</div>
-            <div class="setting-row"><div class="setting-label">Bet365 DK</div><div class="toggle"><input type="checkbox" checked data-book="bet365_dk"><span class="toggle-slider"></span></div></div>
-            <div class="setting-row"><div class="setting-label">Unibet DK</div><div class="toggle"><input type="checkbox" checked data-book="unibet_dk"><span class="toggle-slider"></span></div></div>
-            <div class="setting-row"><div class="setting-label">Danske Spil</div><div class="toggle"><input type="checkbox" checked data-book="danske_spil"><span class="toggle-slider"></span></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-</div><!-- /main-content -->
-
-<!-- Toast Container -->
-<div class="toast-container" id="toastContainer"></div>
 
 <script>
-/* ==========================================================
-   EV SCANNER DASHBOARD — Client Application
-   ========================================================== */
+const S = { signals: [], wsRetry: 0, ws: null };
 
-// ===== STATE =====
-const S = {
-  page: 'overview',
-  ws: null,
-  wsRetry: 0,
-  signals: [],
-  refreshTimers: {},
-  historyPage: 1,
-  historyLimit: 20,
-};
-
-// ===== ROUTING =====
-function navigate(page) {
-  S.page = page;
-  location.hash = '#' + page;
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const el = document.getElementById('page-' + page);
-  const nav = document.querySelector(`.nav-item[data-page="${page}"]`);
-  if (el) el.classList.add('active');
-  if (nav) nav.classList.add('active');
-  // Close mobile sidebar
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebarOverlay').classList.remove('open');
-  // Load data
-  loadPageData(page);
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function fmtTime(t) {
+  if (!t) return '--';
+  const d = new Date(t);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+function fmtMarket(m) {
+  const map = { team_corners_ou: 'Corners O/U', team_offsides_ou: 'Offsides O/U', team_goals_ou: 'Goals O/U', btts: 'BTTS',
+    player_shots_ou: 'Player Shots', player_shots_on_target_ou: 'Player SOT', player_tackles_ou: 'Player Tackles',
+    player_passes_ou: 'Player Passes', player_fouls_ou: 'Player Fouls', player_offsides_ou: 'Player Offsides',
+    anytime_goalscorer: 'Goalscorer', player_cards: 'Player Cards' };
+  return map[m] || m;
+}
+function rec(g) {
+  return { A: ['Strong Buy', 'strong-buy'], B: ['Buy', 'buy'], C: ['Hold', 'hold'], D: ['Skip', 'skip'] }[g] || ['Skip', 'skip'];
 }
 
-function handleHash() {
-  const hash = location.hash.replace('#', '') || 'overview';
-  navigate(hash);
-}
-
-window.addEventListener('hashchange', handleHash);
-
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('sidebarOverlay').classList.toggle('open');
-}
-
-// ===== DEMO MODE =====
-const DEMO = true;
-const DEMO_TEAMS = [
-  ['Arsenal','Chelsea','Premier League'],['Man City','Liverpool','Premier League'],['Tottenham','Man United','Premier League'],
-  ['Bayern Munich','Dortmund','Bundesliga'],['Leverkusen','RB Leipzig','Bundesliga'],['Frankfurt','Wolfsburg','Bundesliga'],
-  ['Barcelona','Atletico Madrid','La Liga'],['Real Madrid','Sevilla','La Liga'],['Valencia','Villarreal','La Liga'],
-  ['Inter','Juventus','Serie A'],['Milan','Napoli','Serie A'],['Roma','Lazio','Serie A'],
-  ['PSG','Lyon','Ligue 1'],['Marseille','Monaco','Ligue 1'],['Lille','Nice','Ligue 1'],
-  ['Copenhagen','Midtjylland','Danish Superliga'],['Brondby','AGF','Danish Superliga'],
-  ['Malmo','AIK','Allsvenskan'],['Djurgarden','Hammarby','Allsvenskan'],
-  ['Bodo/Glimt','Rosenborg','Eliteserien'],['Molde','Viking','Eliteserien']
-];
-const DEMO_MARKETS = ['team_corners_ou','team_offsides_ou','team_goals_ou','btts','player_shots_ou','player_shots_on_target_ou','player_tackles_ou','player_passes_ou','anytime_goalscorer','player_cards'];
-const DEMO_BOOKS = ['Bet365 DK','Unibet DK','Danske Spil'];
-const DEMO_GRADES = ['A','B','C','D'];
-
-function seededRand(s){return function(){s=(s*16807+0)%2147483647;return(s-1)/2147483646;};}
-const dRng = seededRand(42);
-function dPick(a){return a[Math.floor(dRng()*a.length)];}
-function dFloat(min,max){return min+dRng()*(max-min);}
-
-function genEquityCurve(){
-  const pts=[];let v=10000;
-  for(let d=0;d<42;d++){
-    const dt=new Date(2026,0,28+d);
-    v+=dFloat(-180,250);if(v<9200)v+=300;
-    pts.push({date:dt.toISOString().slice(0,10),value:Math.round(v)});
-  }
-  pts[pts.length-1].value=12450;return pts;
-}
-
-function genBets(n){
-  const bets=[];
-  for(let i=0;i<n;i++){
-    const t=dPick(DEMO_TEAMS),m=dPick(DEMO_MARKETS),bk=dPick(DEMO_BOOKS);
-    const odds=dFloat(1.55,3.20),stake=Math.round(dFloat(100,400)/10)*10;
-    const won=dRng()>0.40;const pnl=won?Math.round(stake*(odds-1)):-stake;
-    const day=new Date(2026,0,15+Math.floor(i*0.4));
-    const g=dPick(DEMO_GRADES),ev=dFloat(3.1,12.5);
-    bets.push({id:'b'+String(i+1).padStart(3,'0'),match:t[0]+' vs '+t[1],home:t[0],away:t[1],league:t[2],
-      market:m,selection:m.includes('ou')?'Over '+(Math.floor(dRng()*4)+1)+'.5':'Yes',
-      bookmaker:bk,odds:+odds.toFixed(2),stake,grade:g,ev_pct:+ev.toFixed(1),
-      status:won?'won':'lost',pnl,time:day.toISOString(),settled_at:day.toISOString()});
-  }
-  return bets;
-}
-
-const DEMO_BETS = genBets(147);
-const DEMO_EQUITY = genEquityCurve();
-const DEMO_WON = DEMO_BETS.filter(b=>b.status==='won').length;
-const DEMO_LOST = DEMO_BETS.filter(b=>b.status==='lost').length;
-const DEMO_PNL = DEMO_BETS.reduce((s,b)=>s+b.pnl,0);
-const DEMO_STAKED = DEMO_BETS.reduce((s,b)=>s+b.stake,0);
-
-function demoOverview(){
-  return {
-    bankroll:{current:12450,initial:10000,peak:13200,drawdown_pct:5.7,currency:'DKK'},
-    pnl:{today:450,today_pct:3.7,bets_placed:4,bets_won:3,bets_lost:1},
-    signals:{total:6,a:2,b:2,c:1,d:1},
-    exposure:{pct:7.2,max_daily_pct:10.0},
-    equity_curve:DEMO_EQUITY,
-    recent_bets:DEMO_BETS.slice(-10).reverse()
-  };
-}
-
-function demoHistory(page=1,limit=20,market,league){
-  let filtered=[...DEMO_BETS];
-  if(market)filtered=filtered.filter(b=>b.market===market);
-  if(league)filtered=filtered.filter(b=>b.league===league);
-  const total=filtered.length,pages=Math.ceil(total/limit);
-  const bets=filtered.slice((page-1)*limit,page*limit);
-  const mkts={};filtered.forEach(b=>{if(!mkts[b.market])mkts[b.market]={market:b.market,display:b.market.replace(/_/g,' '),bets:0,won:0,staked:0,pnl:0};const m=mkts[b.market];m.bets++;if(b.status==='won')m.won++;m.staked+=b.stake;m.pnl+=b.pnl;});
-  const lgs={};filtered.forEach(b=>{if(!lgs[b.league])lgs[b.league]={league:b.league,bets:0,won:0,staked:0,pnl:0};const l=lgs[b.league];l.bets++;if(b.status==='won')l.won++;l.staked+=b.stake;l.pnl+=b.pnl;});
-  return {bets,total,page,pages,
-    summary:{total_bets:total,won:DEMO_WON,lost:DEMO_LOST,void:0,total_staked:DEMO_STAKED,total_pnl:DEMO_PNL,roi_pct:+(DEMO_PNL/DEMO_STAKED*100).toFixed(1),
-      by_market:Object.values(mkts).map(m=>({...m,roi:+(m.pnl/m.staked*100).toFixed(1)})),
-      by_league:Object.values(lgs).map(l=>({...l,roi:+(l.pnl/l.staked*100).toFixed(1)})),
-      monthly:[{month:'2026-01',bets:52,pnl:800,roi:6.2},{month:'2026-02',bets:58,pnl:1100,roi:8.1},{month:'2026-03',bets:37,pnl:550,roi:11.2}]
-    },
-    equity_curve:DEMO_EQUITY
-  };
-}
-
-function demoModels(){
-  return {models:[
-    {type:'poisson',name:'Poisson Goals',version:'1.2.0',status:'active',last_trained:'2026-03-08T14:30:00',training_samples:2450,metrics:{brier_score:0.198,log_loss:0.543,calibration_error:0.032},drift:{status:'ok',psi:0.08,threshold:0.2}},
-    {type:'dixon_coles',name:'Dixon-Coles',version:'1.1.0',status:'active',last_trained:'2026-03-08T14:35:00',training_samples:2450,metrics:{brier_score:0.185,log_loss:0.521,calibration_error:0.028},drift:{status:'ok',psi:0.06,threshold:0.2}},
-    {type:'negbin_corners',name:'NegBin Corners',version:'1.3.0',status:'active',last_trained:'2026-03-07T10:00:00',training_samples:2200,metrics:{brier_score:0.212,log_loss:0.578,calibration_error:0.041},drift:{status:'ok',psi:0.09,threshold:0.2}},
-    {type:'negbin_offsides',name:'NegBin Offsides',version:'1.0.0',status:'active',last_trained:'2026-03-07T10:05:00',training_samples:1800,metrics:{brier_score:0.228,log_loss:0.612,calibration_error:0.048},drift:{status:'warning',psi:0.16,threshold:0.2}},
-    {type:'btts',name:'BTTS',version:'1.2.0',status:'active',last_trained:'2026-03-08T15:00:00',training_samples:2450,metrics:{brier_score:0.195,log_loss:0.535,calibration_error:0.035},drift:{status:'ok',psi:0.05,threshold:0.2}},
-    {type:'player_shots',name:'Player Shots',version:'1.1.0',status:'active',last_trained:'2026-03-06T12:00:00',training_samples:4800,metrics:{brier_score:0.205,log_loss:0.558,calibration_error:0.038},drift:{status:'ok',psi:0.07,threshold:0.2}},
-    {type:'player_sot',name:'Player SOT',version:'1.0.0',status:'active',last_trained:'2026-03-06T12:10:00',training_samples:4800,metrics:{brier_score:0.218,log_loss:0.589,calibration_error:0.044},drift:{status:'ok',psi:0.08,threshold:0.2}},
-    {type:'player_tackles',name:'Player Tackles',version:'1.0.0',status:'active',last_trained:'2026-03-06T12:20:00',training_samples:4200,metrics:{brier_score:0.232,log_loss:0.624,calibration_error:0.051},drift:{status:'ok',psi:0.10,threshold:0.2}},
-    {type:'player_passes',name:'Player Passes',version:'1.0.0',status:'active',last_trained:'2026-03-06T12:30:00',training_samples:4200,metrics:{brier_score:0.215,log_loss:0.582,calibration_error:0.039},drift:{status:'ok',psi:0.07,threshold:0.2}},
-    {type:'player_fouls',name:'Player Fouls',version:'1.0.0',status:'active',last_trained:'2026-03-06T12:40:00',training_samples:4200,metrics:{brier_score:0.241,log_loss:0.648,calibration_error:0.055},drift:{status:'ok',psi:0.11,threshold:0.2}},
-    {type:'player_offsides',name:'Player Offsides',version:'1.0.0',status:'active',last_trained:'2026-03-06T12:50:00',training_samples:3600,metrics:{brier_score:0.252,log_loss:0.672,calibration_error:0.058},drift:{status:'warning',psi:0.18,threshold:0.2}},
-    {type:'anytime_goalscorer',name:'Goalscorer',version:'1.2.0',status:'active',last_trained:'2026-03-08T16:00:00',training_samples:5200,metrics:{brier_score:0.178,log_loss:0.498,calibration_error:0.025},drift:{status:'ok',psi:0.04,threshold:0.2}},
-    {type:'player_cards',name:'Player Cards',version:'1.0.0',status:'active',last_trained:'2026-03-06T13:00:00',training_samples:4200,metrics:{brier_score:0.268,log_loss:0.695,calibration_error:0.062},drift:{status:'ok',psi:0.12,threshold:0.2}}
-  ]};
-}
-
-function demoIngestion(){
-  const now=new Date().toISOString();
-  return {
-    sources:[
-      {name:'Optic Odds',status:'healthy',last_fetch:now,records_today:342,total_records:15420},
-      {name:'The Odds API',status:'healthy',last_fetch:now,records_today:128,total_records:8930,credits_remaining:420},
-      {name:'SportMonks',status:'healthy',last_fetch:now,records_today:56,total_records:45200}
-    ],
-    entity_resolution:{resolved_pct:96.4,unresolved_count:23,total_entities:640,confidence_avg:0.92},
-    tables:[
-      {name:'raw_fixtures',count:4520},{name:'raw_odds',count:89340},{name:'matches',count:3200},
-      {name:'teams',count:186},{name:'players',count:4280},{name:'odds_snapshots',count:156700},
-      {name:'feature_vectors',count:28400},{name:'model_predictions',count:12800},{name:'ev_signals',count:890},{name:'bets',count:147}
-    ],
-    recent_logs:Array.from({length:20},(_,i)=>{
-      const src=['optic_odds','the_odds_api','sportmonks'][i%3];
-      const acts=['ingest_fixtures','ingest_odds','ingest_stats'];
-      return {timestamp:new Date(Date.now()-i*180000).toISOString(),source:src,action:acts[i%3],status:'success',records:Math.floor(dRng()*200)+10,duration_ms:Math.floor(dRng()*5000)+500};
-    })
-  };
-}
-
-function demoSettings(){
-  return {
-    bankroll_dkk:12450,min_ev_threshold:0.03,kelly_fraction:0.25,max_stake_pct:0.03,min_odds:1.5,max_odds:4.0,
-    leagues:[
-      {id:'epl',name:'Premier League',country:'England',active:true},{id:'la_liga',name:'La Liga',country:'Spain',active:true},
-      {id:'bundesliga',name:'Bundesliga',country:'Germany',active:true},{id:'serie_a',name:'Serie A',country:'Italy',active:true},
-      {id:'ligue_1',name:'Ligue 1',country:'France',active:true},{id:'danish_superliga',name:'Danish Superliga',country:'Denmark',active:true},
-      {id:'allsvenskan',name:'Allsvenskan',country:'Sweden',active:true},{id:'eliteserien',name:'Eliteserien',country:'Norway',active:true}
-    ],
-    bookmakers:[{id:'bet365_dk',name:'Bet365 DK',active:true},{id:'unibet_dk',name:'Unibet DK',active:true},{id:'danske_spil',name:'Danske Spil',active:true}],
-    api_health:{optic_odds:'healthy',the_odds_api:'healthy',sportmonks:'healthy'}
-  };
-}
-
-function demoSignals(){
-  const sigs=[
-    {id:'ds1',home:'Arsenal',away:'Chelsea',league:'Premier League',market:'team_corners_ou',selection:'Over 10.5',bookmaker:'Bet365 DK',odds:2.05,model_prob:0.56,ev_pct:8.2,edge:5.8,confidence:0.82,grade:{overall:'A'},kickoff:new Date(Date.now()+7200000).toISOString(),
-      explanation:{summary:'Strong corners value based on both teams\u2019 high corner rates.',reasons:['Arsenal avg 6.2 corners/game (top 3 in PL)','Chelsea concede 5.8 corners/game','H2H avg 12.3 corners last 5 meetings','Model sees 56% chance of Over 10.5 vs implied 48.8%'],risk_factors:['Chelsea may park the bus away','Weather conditions unknown'],recommendation:'Strong Buy'}},
-    {id:'ds2',home:'Bayern Munich',away:'Dortmund',league:'Bundesliga',market:'player_shots_ou',selection:'Musiala Over 2.5 shots',bookmaker:'Unibet DK',odds:2.15,model_prob:0.54,ev_pct:7.1,edge:4.9,confidence:0.78,grade:{overall:'A'},kickoff:new Date(Date.now()+10800000).toISOString(),
-      explanation:{summary:'Musiala consistently exceeds shot expectations in big games.',reasons:['Musiala avg 3.1 shots/game last 10','Dortmund concede 14.2 shots/game','Der Klassiker typically high-tempo','Model probability 54% vs implied 46.5%'],risk_factors:['Musiala may be rotated','Dortmund pressing may limit chances'],recommendation:'Strong Buy'}},
-    {id:'ds3',home:'Barcelona',away:'Atletico Madrid',league:'La Liga',market:'btts',selection:'Yes',bookmaker:'Danske Spil',odds:1.92,model_prob:0.58,ev_pct:5.8,edge:3.6,confidence:0.75,grade:{overall:'B'},kickoff:new Date(Date.now()+14400000).toISOString(),
-      explanation:{summary:'Both teams score frequently in head-to-head matches.',reasons:['BTTS hit in 7 of last 10 H2H meetings','Barcelona score at home 92% of games','Atletico score away 68% of games'],risk_factors:['Atletico may play defensive','Simeone tends to shut down big games'],recommendation:'Buy'}},
-    {id:'ds4',home:'Inter',away:'Juventus',league:'Serie A',market:'team_offsides_ou',selection:'Over 4.5',bookmaker:'Bet365 DK',odds:1.88,model_prob:0.60,ev_pct:5.2,edge:3.1,confidence:0.72,grade:{overall:'B'},kickoff:new Date(Date.now()+18000000).toISOString(),
-      explanation:{summary:'Derby d\u2019Italia historically produces many offsides.',reasons:['Avg 5.8 offsides in last 8 meetings','Inter\u2019s high defensive line triggers offside traps','Juventus avg 2.4 offsides/game away'],risk_factors:['Tactical adjustments may reduce offsides','VAR may not count marginal calls'],recommendation:'Buy'}},
-    {id:'ds5',home:'PSG',away:'Lyon',league:'Ligue 1',market:'player_tackles_ou',selection:'Verratti Over 3.5 tackles',bookmaker:'Unibet DK',odds:2.30,model_prob:0.49,ev_pct:4.1,edge:2.5,confidence:0.65,grade:{overall:'C'},kickoff:new Date(Date.now()+21600000).toISOString(),
-      explanation:{summary:'Verratti\u2019s tackling rate is above this line in most matches.',reasons:['Verratti avg 4.2 tackles/game last 5','Lyon play high possession forcing duels','Model sees 49% vs implied 43.5%'],risk_factors:['Verratti may be subbed early','Low-tempo match possible'],recommendation:'Marginal'}},
-    {id:'ds6',home:'Copenhagen',away:'Midtjylland',league:'Danish Superliga',market:'team_goals_ou',selection:'Over 2.5',bookmaker:'Danske Spil',odds:1.75,model_prob:0.61,ev_pct:3.2,edge:1.8,confidence:0.60,grade:{overall:'D'},kickoff:new Date(Date.now()+25200000).toISOString(),
-      explanation:{summary:'Slight edge on goals but low confidence.',reasons:['H2H avg 2.8 goals last 6 meetings','Copenhagen strong at home (2.1 goals/game)'],risk_factors:['Midtjylland very defensive away','Small sample of Danish Superliga data','Edge is marginal at 1.8%'],recommendation:'Pass'}}
-  ];
-  return sigs;
-}
-
-// Override apiFetch for demo mode
-// ===== DATA LOADING =====
-async function apiFetch(url, opts) {
-  if (DEMO) {
-    const u = new URL(url, location.href);
-    const path = u.pathname;
-    if (path === '/api/overview') return demoOverview();
-    if (path === '/api/history') {
-      const p = u.searchParams;
-      return demoHistory(+(p.get('page')||1), +(p.get('limit')||20), p.get('market'), p.get('league'));
-    }
-    if (path === '/api/models') return demoModels();
-    if (path === '/api/ingestion') return demoIngestion();
-    if (path === '/api/settings') return demoSettings();
-    if (path === '/api/signals') return demoSignals();
-    if (path === '/api/stats') return {bankroll:12450,pnl_today:450,signals_today:6,max_drawdown:5.7};
-    if (path.includes('/approve')) { toast('Signal approved', 'success'); return {status:'ok'}; }
-    if (path.includes('/reject')) { toast('Signal rejected', 'info'); return {status:'ok'}; }
-    if (path.includes('/retrain')) { toast('Retraining started', 'info'); return {status:'ok'}; }
-    if (path.includes('/trigger')) { toast('Ingestion triggered', 'info'); return {status:'ok'}; }
-    if (opts && opts.method === 'POST') { toast('Settings saved', 'success'); return {status:'ok'}; }
-    return null;
-  }
-  try {
-    const res = await fetch(url, opts);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (e) {
-    console.warn('API fetch failed:', url, e);
-    return null;
-  }
-}
-
-function loadPageData(page) {
-  clearInterval(S.refreshTimers[page]);
-  const loaders = {
-    overview: loadOverview,
-    signals: loadSignals,
-    history: loadHistory,
-    models: loadModels,
-    ingestion: loadIngestion,
-    settings: loadSettings,
-  };
-  if (loaders[page]) {
-    loaders[page]();
-    S.refreshTimers[page] = setInterval(loaders[page], 30000);
-  }
-}
-
-// ===== OVERVIEW =====
-async function loadOverview() {
-  const data = await apiFetch('/api/overview');
-  if (!data) return;
-  const b = data.bankroll || {};
-  const p = data.pnl || {};
-  const sig = data.signals || {};
-  const exp = data.exposure || {};
-
-  setText('ov-bankroll', fmtDKK(b.current || 0));
-  setText('ov-bankroll-sub', `Peak: ${fmtDKK(b.peak || 0)}`);
-
-  const pnlVal = p.today || 0;
-  const pnlEl = document.getElementById('ov-pnl');
-  pnlEl.textContent = (pnlVal >= 0 ? '+' : '') + fmtDKK(pnlVal);
-  pnlEl.className = 'stat-value ' + (pnlVal >= 0 ? 'positive' : 'negative');
-  setText('ov-pnl-sub', `${(p.today_pct || 0).toFixed(2)}%`);
-
-  setText('ov-signals', sig.total || 0);
-  setText('ov-signals-sub', `A:${sig.a||0} B:${sig.b||0} C:${sig.c||0} D:${sig.d||0}`);
-
-  const expPct = exp.pct || 0;
-  setText('ov-exposure', expPct.toFixed(1) + '%');
-  setText('ov-exposure-sub', `Max drawdown: ${(b.drawdown_pct || 0).toFixed(1)}%`);
-
-  // Equity curve
-  drawEquityCurve(data.equity_curve || []);
-  // Exposure gauge
-  drawExposureGauge(expPct);
-  // Grade breakdown
-  renderGradeBreakdown(sig);
-  // Recent bets
-  renderRecentBets(data.recent_bets || []);
-}
-
-function renderGradeBreakdown(sig) {
-  const el = document.getElementById('gradeBreakdown');
-  const grades = [
-    { g: 'A', c: sig.a || 0, color: 'var(--grade-a)' },
-    { g: 'B', c: sig.b || 0, color: 'var(--grade-b)' },
-    { g: 'C', c: sig.c || 0, color: 'var(--grade-c)' },
-    { g: 'D', c: sig.d || 0, color: 'var(--grade-d)' },
-  ];
-  const total = grades.reduce((s, g) => s + g.c, 0) || 1;
-  el.innerHTML = grades.map(g => `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-      <span class="badge-grade grade-${g.g}">${g.g}</span>
-      <div style="flex:1;">
-        <div class="progress-bar"><div class="progress-fill" style="width:${(g.c/total*100).toFixed(0)}%;background:${g.color};"></div></div>
-      </div>
-      <span style="font-family:var(--mono);font-size:12px;color:var(--text-secondary);min-width:24px;text-align:right;">${g.c}</span>
-    </div>
-  `).join('');
-}
-
-function renderRecentBets(bets) {
-  const tb = document.getElementById('recentBetsBody');
-  if (!bets.length) { tb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">No recent bets</td></tr>'; return; }
-  tb.innerHTML = bets.slice(0, 10).map(b => `
-    <tr>
-      <td style="font-family:var(--mono);font-size:11px;">${fmtTime(b.time)}</td>
-      <td style="font-family:var(--font);color:var(--text-primary);font-weight:500;">${esc(b.match || '--')}</td>
-      <td>${esc(b.market || '--')}</td>
-      <td>${(b.odds || 0).toFixed(2)}</td>
-      <td>${fmtDKK(b.stake || 0)}</td>
-      <td style="color:var(--green);">${(b.ev_pct || 0).toFixed(1)}%</td>
-      <td><span class="badge-grade grade-${b.grade || 'D'}">${b.grade || '-'}</span></td>
-      <td><span class="badge ${b.status || 'pending'}">${b.status || 'pending'}</span></td>
-      <td style="color:${(b.pnl||0) >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600;">${(b.pnl||0) >= 0 ? '+' : ''}${fmtDKK(b.pnl || 0)}</td>
-    </tr>
-  `).join('');
-}
-
-// ===== EQUITY CURVE CHART =====
-function drawEquityCurve(data) {
-  const canvas = document.getElementById('equityCurveChart');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  canvas.style.width = rect.width + 'px';
-  canvas.style.height = rect.height + 'px';
-  ctx.scale(dpr, dpr);
-  const W = rect.width, H = rect.height;
-  ctx.clearRect(0, 0, W, H);
-
-  if (!data.length) {
-    ctx.fillStyle = '#55556a';
-    ctx.font = '12px ' + getComputedStyle(document.body).fontFamily;
-    ctx.textAlign = 'center';
-    ctx.fillText('No equity data yet', W / 2, H / 2);
-    return;
-  }
-
-  const pad = { t: 20, r: 20, b: 30, l: 60 };
-  const cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
-  const vals = data.map(d => d.value || d);
-  const minV = Math.min(...vals) * 0.98, maxV = Math.max(...vals) * 1.02;
-  const rangeV = maxV - minV || 1;
-
-  const toX = (i) => pad.l + (i / (vals.length - 1 || 1)) * cW;
-  const toY = (v) => pad.t + cH - ((v - minV) / rangeV) * cH;
-
-  // Grid lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = pad.t + (cH / 4) * i;
-    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
-    ctx.fillStyle = '#55556a';
-    ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
-    ctx.textAlign = 'right';
-    const lv = maxV - (rangeV / 4) * i;
-    ctx.fillText(fmtDKKShort(lv), pad.l - 8, y + 3);
-  }
-
-  // Fill gradient
-  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + cH);
-  grad.addColorStop(0, 'rgba(0,212,170,0.18)');
-  grad.addColorStop(1, 'rgba(0,212,170,0)');
-  ctx.beginPath();
-  ctx.moveTo(toX(0), pad.t + cH);
-  vals.forEach((v, i) => ctx.lineTo(toX(i), toY(v)));
-  ctx.lineTo(toX(vals.length - 1), pad.t + cH);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // Line
-  ctx.beginPath();
-  vals.forEach((v, i) => { i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)); });
-  ctx.strokeStyle = '#00d4aa';
-  ctx.lineWidth = 2;
-  ctx.lineJoin = 'round';
-  ctx.stroke();
-
-  // End dot
-  const lastX = toX(vals.length - 1), lastY = toY(vals[vals.length - 1]);
-  ctx.beginPath();
-  ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
-  ctx.fillStyle = '#00d4aa';
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(lastX, lastY, 7, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(0,212,170,0.3)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-}
-
-// ===== EXPOSURE GAUGE =====
-function drawExposureGauge(pct) {
-  const canvas = document.getElementById('exposureGauge');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = 160 * dpr;
-  canvas.height = 100 * dpr;
-  canvas.style.width = '160px';
-  canvas.style.height = '100px';
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, 160, 100);
-
-  const cx = 80, cy = 82, r = 62;
-  const startAngle = Math.PI;
-  const endAngle = 2 * Math.PI;
-
-  // Background arc
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, startAngle, endAngle);
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 10;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-
-  // Value arc
-  const valAngle = startAngle + (Math.min(pct, 100) / 100) * Math.PI;
-  let color = '#00d4aa';
-  if (pct > 60) color = '#ffe66d';
-  if (pct > 80) color = '#ff6b6b';
-
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, startAngle, valAngle);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 10;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-
-  document.getElementById('gaugeLabel').textContent = pct.toFixed(1) + '%';
-  document.getElementById('gaugeLabel').style.color = color;
-}
-
-// ===== LIVE SIGNALS =====
-async function loadSignals() {
-  const data = await apiFetch('/api/signals');
-  if (!data) return;
-  S.signals = data.signals || data || [];
-  renderSignals();
-}
-
-function renderSignals() {
+function render() {
   let sigs = [...S.signals];
+  const fl = document.getElementById('fLeague').value;
+  const fm = document.getElementById('fMarket').value;
+  const fev = parseFloat(document.getElementById('fMinEV').value) || 0;
+  const fg = document.getElementById('fGrade').value;
+  const fs = document.getElementById('fSort').value;
 
-  // Apply filters
-  const league = document.getElementById('filterLeague').value;
-  const market = document.getElementById('filterMarket').value;
-  const minEV = parseFloat(document.getElementById('filterMinEV').value) || 0;
-  const grade = document.getElementById('filterGrade').value;
-  const sort = document.getElementById('filterSort').value;
+  if (fl) sigs = sigs.filter(s => s.league === fl);
+  if (fm) sigs = sigs.filter(s => s.market === fm);
+  if (fev > 0) sigs = sigs.filter(s => (s.ev_pct || 0) >= fev);
+  if (fg) sigs = sigs.filter(s => getGrade(s) === fg);
 
-  if (league) sigs = sigs.filter(s => s.league === league);
-  if (market) sigs = sigs.filter(s => s.market_type === market);
-  if (minEV > 0) sigs = sigs.filter(s => (s.ev_pct || 0) >= minEV);
-  if (grade) sigs = sigs.filter(s => s.grade === grade);
+  if (fs === 'ev') sigs.sort((a, b) => (b.ev_pct || 0) - (a.ev_pct || 0));
+  else if (fs === 'grade') sigs.sort((a, b) => (getGrade(a)).localeCompare(getGrade(b)));
+  else if (fs === 'kickoff') sigs.sort((a, b) => new Date(a.kickoff || 0) - new Date(b.kickoff || 0));
 
-  // Sort
-  if (sort === 'ev_desc') sigs.sort((a, b) => (b.ev_pct || 0) - (a.ev_pct || 0));
-  else if (sort === 'grade_asc') sigs.sort((a, b) => (a.grade || 'Z').localeCompare(b.grade || 'Z'));
-  else if (sort === 'kickoff_asc') sigs.sort((a, b) => new Date(a.kickoff || 0) - new Date(b.kickoff || 0));
+  document.getElementById('countBadge').textContent = sigs.length + ' pick' + (sigs.length !== 1 ? 's' : '');
 
-  document.getElementById('signalCountHeader').textContent = `${sigs.length} active signal${sigs.length !== 1 ? 's' : ''}`;
+  // Populate league filter
+  const leagues = [...new Set(S.signals.map(s => s.league).filter(Boolean))].sort();
+  const leagueSel = document.getElementById('fLeague');
+  const curLeague = leagueSel.value;
+  if (leagueSel.options.length <= 1) {
+    leagues.forEach(l => { const o = document.createElement('option'); o.value = l; o.textContent = l; leagueSel.appendChild(o); });
+    leagueSel.value = curLeague;
+  }
 
-  const container = document.getElementById('signalsContainer');
+  const el = document.getElementById('signals');
   if (!sigs.length) {
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">No signals match your filters</div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">&#9898;</div><div class="empty-text">No picks match your filters</div></div>';
     return;
   }
 
-  container.innerHTML = sigs.map(s => {
-    const g = s.grade || 'D';
-    const rec = getRecommendation(g);
-    const reasons = s.reasons || [];
-    const risks = s.risks || [];
-    const badges = s.grade_breakdown || [];
+  el.innerHTML = sigs.map(s => {
+    const g = getGrade(s);
+    const [recLabel, recCls] = rec(g);
+    const expl = s.explanation || {};
+    const reasons = expl.reasons || s.reasons || [];
+    const risks = expl.risk_factors || s.risks || [];
+    const summary = expl.summary || '';
 
     return `
-    <div class="signal-card grade-${g}" onclick="this.classList.toggle('expanded')">
-      <div class="signal-main">
-        <div class="signal-top">
-          <div class="grade-badge-large grade-${g}">${g}</div>
-          <div class="match-info">
-            <div class="match-teams">${esc(s.home || '?')}<span class="vs">vs</span>${esc(s.away || '?')}</div>
-            <div class="match-meta">
-              <span class="match-meta-item">${esc(s.league || '--')}</span>
-              <span class="match-meta-sep"></span>
-              <span class="match-meta-item">${fmtTime(s.kickoff)}</span>
-              <span class="match-meta-sep"></span>
-              <span class="match-meta-item">${esc(s.bookmaker || '--')}</span>
-            </div>
-          </div>
-          <div class="signal-top-right">
-            <span class="recommendation-badge ${rec.cls}">${rec.label}</span>
+    <div class="signal grade-${g}" id="sig-${s.id}">
+      <div class="signal-top">
+        <div class="grade-lg ${g}">${g}</div>
+        <div class="match-info">
+          <div class="teams">${esc(s.home || '?')}<span class="vs">vs</span>${esc(s.away || '?')}</div>
+          <div class="meta">
+            <span>${esc(s.league || '')}</span><span class="sep">&middot;</span>
+            <span>${fmtTime(s.kickoff)}</span><span class="sep">&middot;</span>
+            <span>${esc(s.bookmaker || '')}</span>
           </div>
         </div>
-        <div class="signal-metrics">
-          <div class="metric"><div class="metric-value ev">${(s.ev_pct||0).toFixed(1)}%</div><div class="metric-label">EV</div></div>
-          <div class="metric"><div class="metric-value odds">${(s.odds||0).toFixed(2)}</div><div class="metric-label">Odds</div></div>
-          <div class="metric"><div class="metric-value prob">${((s.model_prob||0)*100).toFixed(1)}%</div><div class="metric-label">Prob</div></div>
-          <div class="metric"><div class="metric-value edge">${(s.edge||0).toFixed(1)}%</div><div class="metric-label">Edge</div></div>
-        </div>
-        ${badges.length ? `<div class="grade-badges-row">${badges.map(b => `<span class="grade-badge-sm grade-${b.grade}"><span class="bg">${b.grade}</span> ${esc(b.label)} ${b.value||''}</span>`).join('')}</div>` : ''}
+        <span class="rec-badge ${recCls}">${recLabel}</span>
       </div>
-      <div class="signal-expand">
-        <div class="signal-expand-inner">
-          ${s.explanation ? `<div class="explanation-header">AI Analysis</div><div class="explanation-summary">${esc(s.explanation)}</div>` : ''}
-          ${reasons.length ? `<div class="explanation-header">Value Reasons</div><ul class="reason-list">${reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
-          ${risks.length ? `<div class="explanation-header">Risk Factors</div><ul class="risk-list">${risks.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
-        </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-val ev">${(s.ev_pct||0).toFixed(1)}%</div><div class="metric-lbl">EV</div></div>
+        <div class="metric"><div class="metric-val odds">${(s.odds||0).toFixed(2)}</div><div class="metric-lbl">Odds</div></div>
+        <div class="metric"><div class="metric-val prob">${((s.model_prob||0)*100).toFixed(1)}%</div><div class="metric-lbl">Model Prob</div></div>
+        <div class="metric"><div class="metric-val edge">${(s.edge||0).toFixed(1)}%</div><div class="metric-lbl">Edge</div></div>
       </div>
-      <div class="signal-footer">
-        <div class="signal-footer-left">
-          <span class="signal-footer-item">Market: <span class="val">${esc(s.market_type || '--')}</span></span>
-          <span class="signal-footer-item">Selection: <span class="val">${esc(s.selection || '--')}</span></span>
-          <span class="signal-footer-item">Stake: <span class="val" style="color:var(--green);">${fmtDKK(s.stake || 0)}</span></span>
-        </div>
-        <div class="signal-actions">
-          <button class="btn btn-accent btn-sm" onclick="event.stopPropagation();approveSignal('${s.id}')">Approve</button>
-          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();rejectSignal('${s.id}')">Reject</button>
-        </div>
+      <div class="selection-row">
+        <span class="sel-item">Market: <span class="val">${esc(fmtMarket(s.market || ''))}</span></span>
+        <span class="sel-item">Selection: <span class="val">${esc(s.selection || '')}</span></span>
+        <span class="sel-item">Confidence: <span class="val">${((s.confidence||0)*100).toFixed(0)}%</span></span>
       </div>
+      ${(summary || reasons.length || risks.length) ? `
+      <div class="explain-toggle" onclick="document.getElementById('sig-${s.id}').classList.toggle('open')">
+        Why is this EV? <span class="arrow">&#9660;</span>
+      </div>
+      <div class="explain">
+        ${summary ? `<h4>Analysis</h4><div class="summary">${esc(summary)}</div>` : ''}
+        ${reasons.length ? `<h4>Value Reasons</h4><ul class="reason-list">${reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+        ${risks.length ? `<h4>Risk Factors</h4><ul class="risk-list">${risks.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+      </div>` : ''}
     </div>`;
   }).join('');
 }
 
-function getRecommendation(grade) {
-  const map = { A: { cls: 'strong-buy', label: 'Strong Buy' }, B: { cls: 'buy', label: 'Buy' }, C: { cls: 'hold', label: 'Hold' }, D: { cls: 'skip', label: 'Skip' } };
-  return map[grade] || map.D;
+function getGrade(s) {
+  if (typeof s.grade === 'string') return s.grade;
+  if (s.grade && s.grade.overall) return s.grade.overall;
+  return 'D';
 }
 
-async function approveSignal(id) {
-  const res = await apiFetch(`/api/signals/${id}/approve`, { method: 'POST' });
-  toast(res ? 'Signal approved' : 'Failed to approve', res ? 'success' : 'error');
-  loadSignals();
-}
-
-async function rejectSignal(id) {
-  const res = await apiFetch(`/api/signals/${id}/reject`, { method: 'POST' });
-  toast(res ? 'Signal rejected' : 'Failed to reject', res ? 'success' : 'error');
-  loadSignals();
-}
-
-// Filter events
-['filterLeague', 'filterMarket', 'filterMinEV', 'filterGrade', 'filterSort'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('change', renderSignals);
-  if (el) el.addEventListener('input', () => { if (id === 'filterMinEV') renderSignals(); });
-});
-
-// ===== BET HISTORY =====
-async function loadHistory() {
-  const league = document.getElementById('histLeague').value;
-  const market = document.getElementById('histMarket').value;
-  const status = document.getElementById('histStatus').value;
-  const url = `/api/history?page=${S.historyPage}&limit=${S.historyLimit}&league=${league}&market=${market}&status=${status}`;
-  const data = await apiFetch(url);
-  if (!data) return;
-
-  const stats = data.stats || {};
-  const pnl = stats.total_pnl || 0;
-  const pnlEl = document.getElementById('hist-pnl');
-  pnlEl.textContent = (pnl >= 0 ? '+' : '') + fmtDKK(pnl);
-  pnlEl.className = 'stat-value ' + (pnl >= 0 ? 'positive' : 'negative');
-  setText('hist-roi', (stats.roi || 0).toFixed(1) + '%');
-  setText('hist-winrate', (stats.win_rate || 0).toFixed(1) + '%');
-  setText('hist-count', stats.total_bets || 0);
-  setText('histTotal', `${stats.total_bets || 0} bets`);
-
-  // Table
-  const bets = data.bets || [];
-  const tb = document.getElementById('historyTableBody');
-  if (!bets.length) {
-    tb.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px;">No bets found</td></tr>';
-  } else {
-    tb.innerHTML = bets.map(b => `
-      <tr>
-        <td style="font-size:11px;">${fmtDate(b.date)}</td>
-        <td style="font-family:var(--font);color:var(--text-primary);font-weight:500;">${esc(b.match || '--')}</td>
-        <td>${esc(b.league || '--')}</td>
-        <td>${esc(b.market || '--')}</td>
-        <td>${esc(b.selection || '--')}</td>
-        <td>${(b.odds||0).toFixed(2)}</td>
-        <td>${fmtDKK(b.stake||0)}</td>
-        <td style="color:var(--green);">${(b.ev_pct||0).toFixed(1)}%</td>
-        <td><span class="badge-grade grade-${b.grade||'D'}">${b.grade||'-'}</span></td>
-        <td><span class="badge ${b.status||'pending'}">${b.status||'pending'}</span></td>
-        <td style="color:${(b.pnl||0)>=0?'var(--green)':'var(--red)'};font-weight:600;">${(b.pnl||0)>=0?'+':''}${fmtDKK(b.pnl||0)}</td>
-      </tr>
-    `).join('');
-  }
-
-  // Pagination
-  const totalPages = data.total_pages || 1;
-  renderPagination(totalPages);
-
-  // Charts
-  drawCumPnlChart(data.cum_pnl || []);
-  drawWinLossDonut(stats.wins || 0, stats.losses || 0, stats.pending || 0);
-  drawHBarChart('roiByMarketChart', data.roi_by_market || []);
-  drawHBarChart('roiByLeagueChart', data.roi_by_league || []);
-}
-
-function renderPagination(totalPages) {
-  const el = document.getElementById('historyPagination');
-  if (totalPages <= 1) { el.innerHTML = ''; return; }
-  let html = '';
-  html += `<button class="btn btn-sm" onclick="goHistPage(${S.historyPage - 1})" ${S.historyPage<=1?'disabled':''}>&#8592;</button>`;
-  for (let i = 1; i <= Math.min(totalPages, 7); i++) {
-    html += `<button class="btn btn-sm ${i===S.historyPage?'active':''}" onclick="goHistPage(${i})">${i}</button>`;
-  }
-  if (totalPages > 7) html += `<button class="btn btn-sm" disabled>...</button><button class="btn btn-sm ${totalPages===S.historyPage?'active':''}" onclick="goHistPage(${totalPages})">${totalPages}</button>`;
-  html += `<button class="btn btn-sm" onclick="goHistPage(${S.historyPage + 1})" ${S.historyPage>=totalPages?'disabled':''}>&#8594;</button>`;
-  el.innerHTML = html;
-}
-
-function goHistPage(p) { S.historyPage = Math.max(1, p); loadHistory(); }
-
-['histLeague', 'histMarket', 'histStatus'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('change', () => { S.historyPage = 1; loadHistory(); });
-});
-
-// ===== CUMULATIVE P&L CHART =====
-function drawCumPnlChart(data) {
-  const canvas = document.getElementById('cumPnlChart');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  canvas.style.width = rect.width + 'px';
-  canvas.style.height = rect.height + 'px';
-  ctx.scale(dpr, dpr);
-  const W = rect.width, H = rect.height;
-  ctx.clearRect(0, 0, W, H);
-
-  if (!data.length) { drawNoData(ctx, W, H); return; }
-
-  const pad = { t: 16, r: 16, b: 24, l: 56 };
-  const cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
-  const vals = data.map(d => d.value != null ? d.value : d);
-  const minV = Math.min(0, ...vals), maxV = Math.max(0, ...vals);
-  const rangeV = (maxV - minV) || 1;
-  const toX = i => pad.l + (i / (vals.length - 1 || 1)) * cW;
-  const toY = v => pad.t + cH - ((v - minV) / rangeV) * cH;
-
-  // Zero line
-  const zeroY = toY(0);
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath(); ctx.moveTo(pad.l, zeroY); ctx.lineTo(W - pad.r, zeroY); ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Grid
-  for (let i = 0; i <= 3; i++) {
-    const y = pad.t + (cH / 3) * i;
-    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
-    const lv = maxV - (rangeV / 3) * i;
-    ctx.fillStyle = '#55556a';
-    ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
-    ctx.textAlign = 'right';
-    ctx.fillText(fmtDKKShort(lv), pad.l - 6, y + 3);
-  }
-
-  // Fill
-  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + cH);
-  const lastVal = vals[vals.length - 1];
-  if (lastVal >= 0) {
-    grad.addColorStop(0, 'rgba(0,212,170,0.15)');
-    grad.addColorStop(1, 'rgba(0,212,170,0)');
-  } else {
-    grad.addColorStop(0, 'rgba(255,107,107,0)');
-    grad.addColorStop(1, 'rgba(255,107,107,0.15)');
-  }
-  ctx.beginPath();
-  ctx.moveTo(toX(0), zeroY);
-  vals.forEach((v, i) => ctx.lineTo(toX(i), toY(v)));
-  ctx.lineTo(toX(vals.length - 1), zeroY);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // Line
-  ctx.beginPath();
-  vals.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
-  ctx.strokeStyle = lastVal >= 0 ? '#00d4aa' : '#ff6b6b';
-  ctx.lineWidth = 2;
-  ctx.lineJoin = 'round';
-  ctx.stroke();
-}
-
-// ===== WIN/LOSS DONUT =====
-function drawWinLossDonut(wins, losses, pending) {
-  const canvas = document.getElementById('winLossDonut');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  canvas.style.width = rect.width + 'px';
-  canvas.style.height = rect.height + 'px';
-  ctx.scale(dpr, dpr);
-  const W = rect.width, H = rect.height;
-  ctx.clearRect(0, 0, W, H);
-
-  const total = wins + losses + pending;
-  if (!total) { drawNoData(ctx, W, H); return; }
-
-  const cx = W / 2, cy = H / 2;
-  const outerR = Math.min(cx, cy) - 20;
-  const innerR = outerR * 0.6;
-  const segments = [
-    { val: wins, color: '#00d4aa', label: 'Won' },
-    { val: losses, color: '#ff6b6b', label: 'Lost' },
-    { val: pending, color: '#ffe66d', label: 'Pending' },
-  ].filter(s => s.val > 0);
-
-  let angle = -Math.PI / 2;
-  segments.forEach(seg => {
-    const sweep = (seg.val / total) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, outerR, angle, angle + sweep);
-    ctx.arc(cx, cy, innerR, angle + sweep, angle, true);
-    ctx.closePath();
-    ctx.fillStyle = seg.color;
-    ctx.fill();
-
-    // Label
-    const midAngle = angle + sweep / 2;
-    const lx = cx + Math.cos(midAngle) * (outerR + 14);
-    const ly = cy + Math.sin(midAngle) * (outerR + 14);
-    ctx.fillStyle = seg.color;
-    ctx.font = 'bold 11px ' + getComputedStyle(document.body).fontFamily;
-    ctx.textAlign = 'center';
-    ctx.fillText(`${seg.label} ${seg.val}`, lx, ly + 4);
-
-    angle += sweep;
-  });
-
-  // Center text
-  ctx.fillStyle = '#f0f0f5';
-  ctx.font = 'bold 20px ' + getComputedStyle(document.body).fontFamily;
-  ctx.textAlign = 'center';
-  ctx.fillText(total.toString(), cx, cy + 2);
-  ctx.fillStyle = '#55556a';
-  ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
-  ctx.fillText('TOTAL', cx, cy + 16);
-}
-
-// ===== HORIZONTAL BAR CHART =====
-function drawHBarChart(canvasId, data) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  canvas.style.width = rect.width + 'px';
-  canvas.style.height = rect.height + 'px';
-  ctx.scale(dpr, dpr);
-  const W = rect.width, H = rect.height;
-  ctx.clearRect(0, 0, W, H);
-
-  if (!data.length) { drawNoData(ctx, W, H); return; }
-
-  const pad = { t: 10, r: 50, b: 10, l: 120 };
-  const cW = W - pad.l - pad.r;
-  const barH = Math.min(24, (H - pad.t - pad.b) / data.length - 4);
-  const maxAbs = Math.max(...data.map(d => Math.abs(d.value || 0)), 1);
-
-  data.forEach((d, i) => {
-    const y = pad.t + i * (barH + 4);
-    const val = d.value || 0;
-    const barW = (Math.abs(val) / maxAbs) * cW;
-    const color = val >= 0 ? '#00d4aa' : '#ff6b6b';
-
-    // Label
-    ctx.fillStyle = '#8a8a9a';
-    ctx.font = '11px ' + getComputedStyle(document.body).fontFamily;
-    ctx.textAlign = 'right';
-    ctx.fillText(d.label || d.name || '--', pad.l - 8, y + barH / 2 + 4);
-
-    // Bar
-    const rx = 3;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    roundRect(ctx, pad.l, y, barW, barH, rx);
-    ctx.fill();
-
-    // Value
-    ctx.fillStyle = color;
-    ctx.font = 'bold 11px ' + getComputedStyle(document.body).fontFamily;
-    ctx.textAlign = 'left';
-    ctx.fillText((val >= 0 ? '+' : '') + val.toFixed(1) + '%', pad.l + barW + 6, y + barH / 2 + 4);
-  });
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-  ctx.lineTo(x + r, y + h);
-  ctx.arcTo(x, y + h, x, y + h - r, r);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-}
-
-function drawNoData(ctx, W, H) {
-  ctx.fillStyle = '#55556a';
-  ctx.font = '12px ' + getComputedStyle(document.body).fontFamily;
-  ctx.textAlign = 'center';
-  ctx.fillText('No data available', W / 2, H / 2);
-}
-
-// ===== MODELS =====
-const MODEL_TYPES = ['Poisson', 'Dixon-Coles', 'NegBin Corners', 'NegBin Offsides', 'BTTS', 'Player Shots', 'Player SOT', 'Player Tackles', 'Player Passes', 'Player Fouls', 'Player Offsides', 'Goalscorer', 'Cards'];
-
-async function loadModels() {
-  const data = await apiFetch('/api/models');
-  const models = data ? (data.models || data || []) : [];
-  const grid = document.getElementById('modelsGrid');
-
-  if (!models.length) {
-    // Show placeholder cards for all model types
-    grid.innerHTML = MODEL_TYPES.map(name => renderModelCard({ name, status: 'idle', brier: null, log_loss: null, calibration: null })).join('');
-    return;
-  }
-
-  grid.innerHTML = models.map(m => renderModelCard(m)).join('');
-}
-
-function renderModelCard(m) {
-  const driftColor = m.drift === 'ok' ? 'green' : m.drift === 'warning' ? 'yellow' : m.drift === 'critical' ? 'red' : 'green';
-  const typeSlug = (m.type || m.name || 'unknown').toLowerCase().replace(/[^a-z0-9]+/g, '_');
-  return `
-    <div class="model-card">
-      <div class="model-header">
-        <div class="model-name">${esc(m.name || m.type || 'Unknown')}</div>
-        <span class="status-dot ${driftColor}" title="Drift: ${m.drift || 'ok'}"></span>
-      </div>
-      <div class="model-metrics">
-        <div class="model-metric"><div class="mv">${m.brier != null ? m.brier.toFixed(4) : '--'}</div><div class="ml">Brier</div></div>
-        <div class="model-metric"><div class="mv">${m.log_loss != null ? m.log_loss.toFixed(4) : '--'}</div><div class="ml">Log Loss</div></div>
-        <div class="model-metric"><div class="mv">${m.calibration != null ? m.calibration.toFixed(4) : '--'}</div><div class="ml">Cal. Error</div></div>
-      </div>
-      <div class="model-meta">
-        <span>Last trained: ${m.last_trained ? fmtTime(m.last_trained) : 'Never'}</span>
-        <span>Training samples: ${m.training_size != null ? m.training_size.toLocaleString() : '--'}</span>
-      </div>
-      <button class="btn btn-sm" onclick="retrainModel('${typeSlug}')">Retrain</button>
-    </div>`;
-}
-
-async function retrainModel(type) {
-  toast('Retraining ' + type + '...', 'info');
-  const res = await apiFetch(`/api/models/${type}/retrain`, { method: 'POST' });
-  toast(res ? 'Retrain started' : 'Retrain failed', res ? 'success' : 'error');
-}
-
-// ===== DATA INGESTION =====
-async function loadIngestion() {
-  const data = await apiFetch('/api/ingestion');
-  if (!data) return;
-
-  // Sources
-  const sources = data.sources || [
-    { name: 'Optic Odds', status: 'ok', last_fetch: null, records: 0 },
-    { name: 'The Odds API', status: 'ok', last_fetch: null, records: 0 },
-    { name: 'SportMonks', status: 'ok', last_fetch: null, records: 0 },
-  ];
-  const sg = document.getElementById('sourcesGrid');
-  sg.innerHTML = sources.map(src => {
-    const dot = src.status === 'ok' ? 'green' : src.status === 'warning' ? 'yellow' : 'red';
-    return `
-      <div class="source-card">
-        <div class="source-header">
-          <div class="source-name"><span class="status-dot ${dot}"></span>${esc(src.name)}</div>
-          <button class="btn btn-sm btn-accent" onclick="triggerIngest('${esc(src.name)}')">Ingest</button>
-        </div>
-        <div class="freshness-bar">
-          <span class="freshness-label">Last Fetch</span>
-          <span class="freshness-time">${src.last_fetch ? fmtTime(src.last_fetch) : 'Never'}</span>
-        </div>
-        <div class="freshness-bar">
-          <span class="freshness-label">Records</span>
-          <span class="freshness-time">${(src.records || 0).toLocaleString()}</span>
-        </div>
-      </div>`;
-  }).join('');
-
-  // Entity resolution
-  const er = data.entity_resolution || {};
-  const erEl = document.getElementById('entityResolution');
-  const resolvedPct = er.resolved_pct || 0;
-  erEl.innerHTML = `
-    <div style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-        <span style="font-size:11px;color:var(--text-muted);">Resolved</span>
-        <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);">${resolvedPct.toFixed(1)}%</span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${resolvedPct}%;"></div></div>
-    </div>
-    <div style="display:flex;gap:16px;">
-      <div><span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Unresolved</span><div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--amber);">${er.unresolved || 0}</div></div>
-      <div><span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Avg Confidence</span><div style="font-family:var(--mono);font-size:16px;font-weight:700;">${(er.avg_confidence || 0).toFixed(1)}%</div></div>
-    </div>
-    ${er.confidence_distribution ? `
-      <div style="margin-top:12px;font-size:10px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Confidence Distribution</div>
-      ${(er.confidence_distribution || []).map(b => `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
-          <span style="font-size:10px;min-width:50px;color:var(--text-secondary);">${b.range}</span>
-          <div class="progress-bar" style="flex:1;"><div class="progress-fill" style="width:${b.pct}%;"></div></div>
-          <span style="font-size:10px;font-family:var(--mono);color:var(--text-muted);">${b.count}</span>
-        </div>`).join('')}` : ''}
-  `;
-
-  // Record counts
-  const rc = data.record_counts || {};
-  const rcEl = document.getElementById('recordCounts');
-  const tables = Object.entries(rc);
-  if (tables.length) {
-    rcEl.innerHTML = `<table><thead><tr><th>Table</th><th style="text-align:right;">Count</th></tr></thead><tbody>${tables.map(([k, v]) => `<tr><td style="font-family:var(--font);">${esc(k)}</td><td style="text-align:right;">${v.toLocaleString()}</td></tr>`).join('')}</tbody></table>`;
-  } else {
-    rcEl.innerHTML = '<div style="color:var(--text-muted);padding:12px;text-align:center;">No data</div>';
-  }
-
-  // Log
-  const logs = data.logs || [];
-  const lb = document.getElementById('ingestionLogBody');
-  if (!logs.length) {
-    lb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:16px;">No log entries</td></tr>';
-  } else {
-    lb.innerHTML = logs.slice(0, 50).map(l => `
-      <tr>
-        <td style="font-size:11px;">${fmtTime(l.timestamp)}</td>
-        <td style="font-family:var(--font);">${esc(l.source || '--')}</td>
-        <td>${esc(l.type || '--')}</td>
-        <td>${(l.records || 0).toLocaleString()}</td>
-        <td>${l.duration ? l.duration.toFixed(1) + 's' : '--'}</td>
-        <td><span class="badge ${l.status === 'success' ? 'won' : l.status === 'error' ? 'lost' : 'pending'}">${l.status || '--'}</span></td>
-      </tr>
-    `).join('');
-  }
-}
-
-async function triggerIngest(source) {
-  toast('Triggering ingestion...', 'info');
-  const body = source ? JSON.stringify({ source }) : undefined;
-  const res = await apiFetch('/api/ingest/trigger', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
-  toast(res ? 'Ingestion triggered' : 'Trigger failed', res ? 'success' : 'error');
-  setTimeout(loadIngestion, 2000);
-}
-
-// ===== SETTINGS =====
-async function loadSettings() {
-  const data = await apiFetch('/api/settings');
-  if (!data) return;
-
-  if (data.ev_threshold != null) document.getElementById('set-ev-threshold').value = data.ev_threshold;
-  if (data.kelly_fraction != null) document.getElementById('set-kelly').value = data.kelly_fraction;
-  if (data.max_stake_pct != null) document.getElementById('set-max-stake').value = data.max_stake_pct;
-  if (data.bankroll != null) document.getElementById('set-bankroll').value = data.bankroll;
-  if (data.min_odds != null) document.getElementById('set-min-odds').value = data.min_odds;
-  if (data.max_odds != null) document.getElementById('set-max-odds').value = data.max_odds;
-
-  // Leagues
-  if (data.leagues) {
-    document.querySelectorAll('[data-league]').forEach(cb => {
-      cb.checked = !!data.leagues[cb.dataset.league];
-    });
-  }
-
-  // Bookmakers
-  if (data.bookmakers) {
-    document.querySelectorAll('[data-book]').forEach(cb => {
-      cb.checked = !!data.bookmakers[cb.dataset.book];
-    });
-  }
-
-  // API health
-  if (data.api_health) {
-    const rows = document.getElementById('apiHealthRows');
-    rows.innerHTML = Object.entries(data.api_health).map(([name, status]) => {
-      const dot = status === 'healthy' ? 'green' : status === 'degraded' ? 'yellow' : 'red';
-      return `<div class="setting-row"><div class="setting-label">${esc(name)}</div><div><span class="status-dot ${dot}"></span></div></div>`;
-    }).join('');
-  }
-}
-
-async function saveSettings() {
-  const leagues = {};
-  document.querySelectorAll('[data-league]').forEach(cb => { leagues[cb.dataset.league] = cb.checked; });
-  const bookmakers = {};
-  document.querySelectorAll('[data-book]').forEach(cb => { bookmakers[cb.dataset.book] = cb.checked; });
-
-  const payload = {
-    ev_threshold: parseFloat(document.getElementById('set-ev-threshold').value),
-    kelly_fraction: parseFloat(document.getElementById('set-kelly').value),
-    max_stake_pct: parseFloat(document.getElementById('set-max-stake').value),
-    bankroll: parseFloat(document.getElementById('set-bankroll').value),
-    min_odds: parseFloat(document.getElementById('set-min-odds').value),
-    max_odds: parseFloat(document.getElementById('set-max-odds').value),
-    leagues,
-    bookmakers,
-  };
-
-  const res = await apiFetch('/api/settings', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  toast(res ? 'Settings saved' : 'Failed to save settings', res ? 'success' : 'error');
-}
-
-// ===== WEBSOCKET =====
+// WebSocket
 function connectWS() {
-  if (DEMO) {
-    // Demo mode: simulate connected state and inject signals periodically
-    setConnStatus('connected');
-    document.getElementById('scannerPulse').classList.remove('offline');
-    document.getElementById('scannerLabel').textContent = 'Scanner Active (Demo)';
-    // Load initial signals
-    S.signals = demoSignals();
-    if (S.page === 'signals') renderSignals();
-    // Inject new signals periodically
-    const extraSignals = [
-      {home:'Man City',away:'Liverpool',league:'Premier League',market:'team_corners_ou',selection:'Over 9.5',bookmaker:'Bet365 DK',odds:1.95,model_prob:0.57,ev_pct:6.8,edge:4.2,confidence:0.76,grade:{overall:'B'},explanation:{summary:'Both teams contest corners frequently.',reasons:['Man City avg 6.8 corners/game','Liverpool avg 5.9 corners/game','H2H avg 11.2 corners'],risk_factors:['Pep may rotate squad'],recommendation:'Buy'}},
-      {home:'Real Madrid',away:'Sevilla',league:'La Liga',market:'anytime_goalscorer',selection:'Vinicius Jr to score',bookmaker:'Danske Spil',odds:2.40,model_prob:0.48,ev_pct:9.2,edge:6.1,confidence:0.71,grade:{overall:'A'},explanation:{summary:'Vinicius in strong scoring form at home.',reasons:['Vinicius 6 goals in last 8 home games','Sevilla concede 1.8 goals/game away','xG per 90 of 0.62'],risk_factors:['May be rested for CL'],recommendation:'Strong Buy'}},
-      {home:'Leverkusen',away:'RB Leipzig',league:'Bundesliga',market:'btts',selection:'Yes',bookmaker:'Unibet DK',odds:1.85,model_prob:0.59,ev_pct:4.9,edge:2.8,confidence:0.70,grade:{overall:'B'},explanation:{summary:'Both teams score frequently.',reasons:['BTTS hit 70% for Leverkusen at home','Leipzig score away 72% of games'],risk_factors:['Leipzig may park the bus'],recommendation:'Buy'}},
-      {home:'Milan',away:'Napoli',league:'Serie A',market:'player_shots_on_target_ou',selection:'Leao Over 1.5 SOT',bookmaker:'Bet365 DK',odds:2.25,model_prob:0.51,ev_pct:5.5,edge:3.4,confidence:0.68,grade:{overall:'B'},explanation:{summary:'Leao shoots on target consistently in big games.',reasons:['Leao avg 2.1 SOT/game last 8','Napoli concede 5.2 SOT/game'],risk_factors:['Leao form dipped recently'],recommendation:'Buy'}},
-      {home:'Djurgarden',away:'Hammarby',league:'Allsvenskan',market:'team_offsides_ou',selection:'Over 3.5',bookmaker:'Danske Spil',odds:2.10,model_prob:0.53,ev_pct:6.3,edge:4.0,confidence:0.66,grade:{overall:'C'},explanation:{summary:'Stockholm derby typically features tight defensive lines.',reasons:['H2H avg 4.8 offsides','Both teams play high lines'],risk_factors:['Small league, less data'],recommendation:'Marginal'}},
-      {home:'Brondby',away:'AGF',league:'Danish Superliga',market:'player_cards',selection:'Any Brondby player carded',bookmaker:'Danske Spil',odds:1.65,model_prob:0.68,ev_pct:4.2,edge:2.5,confidence:0.63,grade:{overall:'C'},explanation:{summary:'Brondby players commit fouls frequently.',reasons:['Brondby avg 2.1 cards/game','AGF provoke fouls in midfield'],risk_factors:['Referee dependent','Sample size limited'],recommendation:'Marginal'}},
-      {home:'Marseille',away:'Monaco',league:'Ligue 1',market:'team_goals_ou',selection:'Over 2.5',bookmaker:'Unibet DK',odds:1.82,model_prob:0.60,ev_pct:4.5,edge:2.8,confidence:0.69,grade:{overall:'B'},explanation:{summary:'Both sides score freely at Velodrome.',reasons:['Over 2.5 hit 65% for Marseille at home','Monaco avg 1.6 away goals'],risk_factors:['Monaco can be defensive-minded'],recommendation:'Buy'}},
-      {home:'Tottenham',away:'Man United',league:'Premier League',market:'player_tackles_ou',selection:'Bissouma Over 4.5 tackles',bookmaker:'Bet365 DK',odds:2.50,model_prob:0.46,ev_pct:7.8,edge:5.3,confidence:0.64,grade:{overall:'C'},explanation:{summary:'Bissouma is a tackling machine in big games.',reasons:['Bissouma avg 4.8 tackles/game last 5','United play through midfield'],risk_factors:['Could be subbed at 60min','High line means fewer duels'],recommendation:'Marginal'}}
-    ];
-    let injectIdx = 0;
-    setInterval(() => {
-      if (injectIdx < extraSignals.length) {
-        const sig = {...extraSignals[injectIdx], id: 'ds'+(7+injectIdx), kickoff: new Date(Date.now()+3600000*(injectIdx+3)).toISOString()};
-        S.signals.unshift(sig);
-        if (S.page === 'signals') renderSignals();
-        toast('New signal: ' + sig.home + ' vs ' + sig.away, 'info');
-        injectIdx++;
-      }
-    }, 15000 + Math.random() * 10000);
-    // Add demo badge
-    const badge = document.createElement('div');
-    badge.style.cssText = 'position:fixed;top:12px;right:16px;z-index:9999;background:rgba(255,230,109,0.15);color:#ffe66d;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:1px;border:1px solid rgba(255,230,109,0.3);';
-    badge.textContent = 'DEMO MODE';
-    document.body.appendChild(badge);
-    return;
-  }
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const url = `${proto}//${location.host}/ws`;
-  setConnStatus('connecting');
+  setConn(false);
+  try { S.ws = new WebSocket(url); } catch { scheduleReconnect(); return; }
 
-  try {
-    S.ws = new WebSocket(url);
-  } catch (e) {
-    setConnStatus('disconnected');
-    scheduleReconnect();
-    return;
-  }
-
-  S.ws.onopen = () => {
-    S.wsRetry = 0;
-    setConnStatus('connected');
-    document.getElementById('scannerPulse').classList.remove('offline');
-    document.getElementById('scannerLabel').textContent = 'Scanner Active';
-  };
-
+  S.ws.onopen = () => { S.wsRetry = 0; setConn(true); };
   S.ws.onmessage = (e) => {
     try {
       const msg = JSON.parse(e.data);
@@ -2536,108 +348,84 @@ function connectWS() {
         const idx = S.signals.findIndex(s => s.id === msg.data.id);
         if (idx >= 0) S.signals[idx] = msg.data;
         else S.signals.unshift(msg.data);
-        if (S.page === 'signals') renderSignals();
-        toast('New signal: ' + (msg.data.home || '?') + ' vs ' + (msg.data.away || '?'), 'info');
-      } else if (msg.type === 'scanner_status') {
-        document.getElementById('scannerLabel').textContent = msg.data?.label || 'Scanner Active';
+        render();
       }
-    } catch (err) {}
+    } catch {}
   };
-
-  S.ws.onclose = () => {
-    setConnStatus('disconnected');
-    document.getElementById('scannerPulse').classList.add('offline');
-    document.getElementById('scannerLabel').textContent = 'Scanner Offline';
-    scheduleReconnect();
-  };
-
-  S.ws.onerror = () => {
-    S.ws.close();
-  };
+  S.ws.onclose = () => { setConn(false); scheduleReconnect(); };
+  S.ws.onerror = () => { S.ws.close(); };
 }
 
 function scheduleReconnect() {
-  const delay = Math.min(1000 * Math.pow(2, S.wsRetry), 30000);
-  S.wsRetry++;
-  setTimeout(connectWS, delay);
+  setTimeout(connectWS, Math.min(1000 * Math.pow(2, S.wsRetry++), 30000));
 }
 
-function setConnStatus(state) {
-  const el = document.getElementById('connStatus');
-  const label = document.getElementById('connLabel');
-  el.className = 'conn-status ' + state;
-  label.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+function setConn(on) {
+  document.getElementById('connDot').className = 'conn-dot' + (on ? ' on' : '');
+  document.getElementById('connLabel').textContent = on ? 'Live' : 'Offline';
 }
 
-// ===== TOAST =====
-function toast(msg, type) {
-  type = type || 'info';
-  const container = document.getElementById('toastContainer');
-  const el = document.createElement('div');
-  el.className = 'toast ' + type;
-  const icons = { success: '\u2713', error: '\u2717', info: '\u2139' };
-  el.innerHTML = `<span style="font-weight:700;">${icons[type] || ''}</span> ${esc(msg)}`;
-  container.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(40px)'; el.style.transition = '0.3s ease'; setTimeout(() => el.remove(), 300); }, 3500);
-}
+// Demo signals
+const DEMO_SIGNALS = [
+  {id:'d1',home:'Arsenal',away:'Chelsea',league:'Premier League',market:'team_corners_ou',selection:'Over 10.5',bookmaker:'Bet365 DK',odds:2.05,model_prob:0.56,ev_pct:8.2,edge:5.8,confidence:0.82,grade:'A',kickoff:new Date(Date.now()+7200000).toISOString(),
+    explanation:{summary:'Strong corners value based on both teams\u2019 high corner rates.',reasons:['Arsenal avg 6.2 corners/game (top 3 in PL)','Chelsea concede 5.8 corners/game','H2H avg 12.3 corners last 5 meetings','Model sees 56% chance of Over 10.5 vs implied 48.8%'],risk_factors:['Chelsea may park the bus away','Weather conditions unknown'],recommendation:'Strong Buy'}},
+  {id:'d2',home:'Bayern Munich',away:'Dortmund',league:'Bundesliga',market:'player_shots_ou',selection:'Musiala Over 2.5 shots',bookmaker:'Unibet DK',odds:2.15,model_prob:0.54,ev_pct:7.1,edge:4.9,confidence:0.78,grade:'A',kickoff:new Date(Date.now()+10800000).toISOString(),
+    explanation:{summary:'Musiala consistently exceeds shot expectations in big games.',reasons:['Musiala avg 3.1 shots/game last 10','Dortmund concede 14.2 shots/game','Der Klassiker typically high-tempo','Model probability 54% vs implied 46.5%'],risk_factors:['Musiala may be rotated','Dortmund pressing may limit chances'],recommendation:'Strong Buy'}},
+  {id:'d3',home:'Real Madrid',away:'Sevilla',league:'La Liga',market:'anytime_goalscorer',selection:'Vinicius Jr to score',bookmaker:'Danske Spil',odds:2.40,model_prob:0.48,ev_pct:9.2,edge:6.1,confidence:0.71,grade:'A',kickoff:new Date(Date.now()+14400000).toISOString(),
+    explanation:{summary:'Vinicius in strong scoring form at the Bernabeu.',reasons:['Vinicius 6 goals in last 8 home games','Sevilla concede 1.8 goals/game away','xG per 90 of 0.62','Model sees 48% vs implied 41.7%'],risk_factors:['May be rested for Champions League'],recommendation:'Strong Buy'}},
+  {id:'d4',home:'Barcelona',away:'Atletico Madrid',league:'La Liga',market:'btts',selection:'Yes',bookmaker:'Danske Spil',odds:1.92,model_prob:0.58,ev_pct:5.8,edge:3.6,confidence:0.75,grade:'B',kickoff:new Date(Date.now()+18000000).toISOString(),
+    explanation:{summary:'Both teams score frequently in head-to-head matches.',reasons:['BTTS hit in 7 of last 10 H2H meetings','Barcelona score at home 92% of games','Atletico score away 68% of games'],risk_factors:['Atletico may play ultra-defensive','Simeone tends to shut down big games'],recommendation:'Buy'}},
+  {id:'d5',home:'Inter',away:'Juventus',league:'Serie A',market:'team_offsides_ou',selection:'Over 4.5',bookmaker:'Bet365 DK',odds:1.88,model_prob:0.60,ev_pct:5.2,edge:3.1,confidence:0.72,grade:'B',kickoff:new Date(Date.now()+21600000).toISOString(),
+    explanation:{summary:'Derby d\u2019Italia historically produces many offsides.',reasons:['Avg 5.8 offsides in last 8 meetings','Inter\u2019s high defensive line triggers offside traps','Juventus avg 2.4 offsides/game away'],risk_factors:['Tactical adjustments may reduce offsides'],recommendation:'Buy'}},
+  {id:'d6',home:'Man City',away:'Liverpool',league:'Premier League',market:'team_corners_ou',selection:'Over 9.5',bookmaker:'Bet365 DK',odds:1.95,model_prob:0.57,ev_pct:6.8,edge:4.2,confidence:0.76,grade:'B',kickoff:new Date(Date.now()+25200000).toISOString(),
+    explanation:{summary:'Both teams contest corners frequently in this rivalry.',reasons:['Man City avg 6.8 corners/game at home','Liverpool avg 5.9 corners/game away','H2H avg 11.2 corners last 6 meetings'],risk_factors:['Pep may rotate squad for midweek'],recommendation:'Buy'}},
+  {id:'d7',home:'PSG',away:'Lyon',league:'Ligue 1',market:'player_tackles_ou',selection:'Verratti Over 3.5 tackles',bookmaker:'Unibet DK',odds:2.30,model_prob:0.49,ev_pct:4.1,edge:2.5,confidence:0.65,grade:'C',kickoff:new Date(Date.now()+28800000).toISOString(),
+    explanation:{summary:'Verratti\u2019s tackling rate is above this line in most matches.',reasons:['Verratti avg 4.2 tackles/game last 5','Lyon play high possession forcing duels','Model sees 49% vs implied 43.5%'],risk_factors:['Verratti may be subbed early','Low-tempo match possible'],recommendation:'Hold'}},
+  {id:'d8',home:'Copenhagen',away:'Midtjylland',league:'Danish Superliga',market:'team_goals_ou',selection:'Over 2.5',bookmaker:'Danske Spil',odds:1.75,model_prob:0.61,ev_pct:3.2,edge:1.8,confidence:0.60,grade:'D',kickoff:new Date(Date.now()+32400000).toISOString(),
+    explanation:{summary:'Slight edge on goals but low confidence.',reasons:['H2H avg 2.8 goals last 6 meetings','Copenhagen strong at home (2.1 goals/game)'],risk_factors:['Midtjylland very defensive away','Small sample of Danish Superliga data','Edge is marginal at 1.8%'],recommendation:'Skip'}}
+];
 
-// ===== HELPERS =====
-function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
+// Load demo signals immediately
+S.signals = DEMO_SIGNALS;
+setConn(true);
+document.getElementById('connLabel').textContent = 'Demo';
 
-function esc(s) {
-  if (s == null) return '';
-  const d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
-}
+// Add demo badge
+const demoBadge = document.createElement('div');
+demoBadge.style.cssText = 'position:fixed;top:12px;right:16px;z-index:999;background:rgba(255,230,109,0.12);color:#ffe66d;padding:3px 10px;border-radius:16px;font-size:10px;font-weight:600;letter-spacing:1px;border:1px solid rgba(255,230,109,0.2);';
+demoBadge.textContent = 'DEMO';
+document.body.appendChild(demoBadge);
 
-function fmtDKK(v) {
-  return new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
-}
+// Inject extra signals periodically
+const extraPool = [
+  {home:'Leverkusen',away:'RB Leipzig',league:'Bundesliga',market:'btts',selection:'Yes',bookmaker:'Unibet DK',odds:1.85,model_prob:0.59,ev_pct:4.9,edge:2.8,confidence:0.70,grade:'B',
+    explanation:{summary:'Both teams score frequently in Bundesliga clashes.',reasons:['BTTS hit 70% for Leverkusen at home','Leipzig score away 72% of games'],risk_factors:['Leipzig may sit back'],recommendation:'Buy'}},
+  {home:'Milan',away:'Napoli',league:'Serie A',market:'player_shots_on_target_ou',selection:'Leao Over 1.5 SOT',bookmaker:'Bet365 DK',odds:2.25,model_prob:0.51,ev_pct:5.5,edge:3.4,confidence:0.68,grade:'B',
+    explanation:{summary:'Leao shoots on target consistently in big games.',reasons:['Leao avg 2.1 SOT/game last 8','Napoli concede 5.2 SOT/game'],risk_factors:['Leao form dipped recently'],recommendation:'Buy'}},
+  {home:'Marseille',away:'Monaco',league:'Ligue 1',market:'team_goals_ou',selection:'Over 2.5',bookmaker:'Unibet DK',odds:1.82,model_prob:0.60,ev_pct:4.5,edge:2.8,confidence:0.69,grade:'B',
+    explanation:{summary:'Both sides score freely at Velodrome.',reasons:['Over 2.5 hit 65% for Marseille at home','Monaco avg 1.6 away goals'],risk_factors:['Monaco can be defensive-minded'],recommendation:'Buy'}},
+  {home:'Tottenham',away:'Man United',league:'Premier League',market:'player_tackles_ou',selection:'Bissouma Over 4.5',bookmaker:'Bet365 DK',odds:2.50,model_prob:0.46,ev_pct:7.8,edge:5.3,confidence:0.64,grade:'C',
+    explanation:{summary:'Bissouma is a tackling machine in big games.',reasons:['Bissouma avg 4.8 tackles/game last 5','United play through midfield heavily'],risk_factors:['Could be subbed at 60 min'],recommendation:'Hold'}},
+  {home:'Djurgarden',away:'Hammarby',league:'Allsvenskan',market:'team_offsides_ou',selection:'Over 3.5',bookmaker:'Danske Spil',odds:2.10,model_prob:0.53,ev_pct:6.3,edge:4.0,confidence:0.66,grade:'C',
+    explanation:{summary:'Stockholm derby features tight defensive lines.',reasons:['H2H avg 4.8 offsides','Both teams play high lines'],risk_factors:['Small league, less data reliability'],recommendation:'Hold'}}
+];
+let extraIdx = 0;
+setInterval(() => {
+  if (extraIdx < extraPool.length) {
+    const s = {...extraPool[extraIdx], id: 'dx' + extraIdx, kickoff: new Date(Date.now()+3600000*(extraIdx+8)).toISOString()};
+    S.signals.unshift(s);
+    render();
+    extraIdx++;
+  }
+}, 18000);
 
-function fmtDKKShort(v) {
-  if (Math.abs(v) >= 1000) return (v / 1000).toFixed(1) + 'k';
-  return v.toFixed(0);
-}
-
-function fmtTime(t) {
-  if (!t) return '--';
-  try {
-    const d = new Date(t);
-    return d.toLocaleString('da-DK', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch { return '--'; }
-}
-
-function fmtDate(t) {
-  if (!t) return '--';
-  try {
-    return new Date(t).toLocaleDateString('da-DK', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch { return '--'; }
-}
-
-// ===== RESIZE HANDLER =====
-let resizeTimer;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    if (S.page === 'overview') loadOverview();
-    if (S.page === 'history') loadHistory();
-  }, 200);
+// Filter events
+['fLeague', 'fMarket', 'fMinEV', 'fGrade', 'fSort'].forEach(id => {
+  document.getElementById(id).addEventListener('change', render);
 });
 
-// ===== INIT =====
-document.addEventListener('DOMContentLoaded', () => {
-  handleHash();
-  connectWS();
-
-  // Toggle clicks
-  document.querySelectorAll('.toggle').forEach(t => {
-    t.addEventListener('click', () => {
-      const cb = t.querySelector('input');
-      cb.checked = !cb.checked;
-    });
-  });
-});
+// Init
+render();
 </script>
 </body>
 </html>
