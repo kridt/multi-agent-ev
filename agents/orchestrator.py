@@ -7,16 +7,16 @@ The main control loop that:
 4. Generates daily summary reports.
 
 Design decisions:
+- Inherits from BaseAgent to reuse the Claude tool-use loop, conversation
+  history management, and Anthropic client setup.
 - Uses Claude tool_use to let Claude invoke the db_tools and analysis_tools
   functions when reasoning about signals. This keeps the reasoning transparent
   and auditable — every data access Claude performs is logged.
-- The tool loop has a hard cap of MAX_TOOL_ITERATIONS to prevent runaway spend.
 - Signal updates are written in a separate DB session from reads to avoid
   long-lived transactions.
 - run_daily_report() does NOT call Claude with tools. It assembles the report
   data directly and calls Claude once for a plain-text summary. This is
   cheaper and faster for a reporting use case.
-- CLAUDE_MODEL is a module-level constant for easy auditing.
 
 Assumptions:
 - Only signals with status='pending' are processed by run_scan_cycle().
@@ -44,6 +44,7 @@ from typing import Any
 
 import anthropic
 
+from agents.base_agent import BaseAgent
 from agents.anomaly_reasoner import AnomalyReasoner
 from agents.tools.analysis_tools import check_lineup_changes, check_weather_news, detect_odds_anomaly
 from agents.tools.db_tools import (
@@ -54,7 +55,6 @@ from agents.tools.db_tools import (
     get_signals_for_match,
     get_upcoming_matches,
 )
-from config.settings import settings
 from db.models.predictions import EVSignal
 from db.session import get_session
 from sqlalchemy import select
@@ -220,8 +220,10 @@ When you have finished your assessment, output a JSON object:
 """
 
 
-class Orchestrator:
+class Orchestrator(BaseAgent):
     """Main orchestrator agent for the EV betting system.
+
+    Inherits from BaseAgent for Claude API calls and tool-use loop.
 
     Usage:
         orchestrator = Orchestrator()
@@ -230,8 +232,53 @@ class Orchestrator:
     """
 
     def __init__(self) -> None:
-        self._client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+        super().__init__(
+            name="orchestrator",
+            model=CLAUDE_MODEL,
+            max_history=50,
+            max_iterations=MAX_TOOL_ITERATIONS,
+            max_tokens=MAX_TOKENS,
+        )
         self._reasoner = AnomalyReasoner()
+
+    # ------------------------------------------------------------------
+    # BaseAgent abstract interface
+    # ------------------------------------------------------------------
+
+    @property
+    def system_prompt(self) -> str:
+        return SCAN_SYSTEM_PROMPT
+
+    @property
+    def tools(self) -> list[dict]:
+        return TOOLS
+
+    async def execute_tool(
+        self, tool_name: str, tool_input: dict[str, Any]
+    ) -> Any:
+        """Dispatch a tool call to the appropriate function.
+
+        Each tool maps 1:1 to a function in db_tools or analysis_tools.
+        Raises KeyError for unknown tools (caught by BaseAgent._dispatch_tool).
+        """
+        if tool_name == "get_upcoming_matches":
+            return await get_upcoming_matches(**tool_input)
+        elif tool_name == "get_signals_for_match":
+            return await get_signals_for_match(**tool_input)
+        elif tool_name == "get_odds_movement":
+            return await get_odds_movement(**tool_input)
+        elif tool_name == "get_bankroll_status":
+            return await get_bankroll_status()
+        elif tool_name == "get_recent_bets":
+            return await get_recent_bets(**tool_input)
+        elif tool_name == "get_model_performance":
+            return await get_model_performance(**tool_input)
+        elif tool_name == "check_lineup_changes":
+            return await check_lineup_changes(**tool_input)
+        elif tool_name == "check_weather_news":
+            return await check_weather_news(**tool_input)
+        else:
+            raise KeyError(f"Unknown tool: {tool_name!r}")
 
     # ------------------------------------------------------------------
     # Public API
@@ -458,140 +505,6 @@ class Orchestrator:
         return assessment
 
     # ------------------------------------------------------------------
-    # Private: orchestrator Claude tool-use loop
-    # ------------------------------------------------------------------
-
-    async def _run_tool_loop(
-        self,
-        messages: list[dict],
-        system_prompt: str,
-    ) -> str:
-        """Run the Claude tool-use loop until stop_reason is 'end_turn' or cap is hit.
-
-        Returns the final text response from Claude.
-        The loop is capped at MAX_TOOL_ITERATIONS to prevent runaway spend.
-
-        Each tool call is dispatched to the appropriate function.
-        If a tool call fails, a tool_result with is_error=True is sent back
-        so Claude can handle it gracefully.
-        """
-        iteration = 0
-
-        while iteration < MAX_TOOL_ITERATIONS:
-            iteration += 1
-
-            try:
-                response = await self._client.messages.create(
-                    model=CLAUDE_MODEL,
-                    max_tokens=MAX_TOKENS,
-                    system=system_prompt,
-                    tools=TOOLS,
-                    messages=messages,
-                )
-            except anthropic.APIError as exc:
-                logger.error("Orchestrator: Claude API error in tool loop — %s", exc)
-                return f"[ERROR] Claude API error: {exc}"
-
-            # Add Claude's response to the message history.
-            messages.append({"role": "assistant", "content": response.content})
-
-            if response.stop_reason == "end_turn":
-                # Extract the final text block.
-                for block in response.content:
-                    if hasattr(block, "text"):
-                        return block.text
-                return ""
-
-            if response.stop_reason != "tool_use":
-                logger.warning(
-                    "Orchestrator: unexpected stop_reason %r — stopping loop",
-                    response.stop_reason,
-                )
-                break
-
-            # Execute all tool_use blocks in this response.
-            tool_results: list[dict] = []
-            for block in response.content:
-                if block.type != "tool_use":
-                    continue
-
-                tool_result = await self._dispatch_tool(
-                    tool_name=block.name,
-                    tool_input=block.input,
-                    tool_use_id=block.id,
-                )
-                tool_results.append(tool_result)
-
-            # Feed tool results back to Claude.
-            messages.append({"role": "user", "content": tool_results})
-
-        logger.warning(
-            "Orchestrator: tool loop hit iteration cap (%d) — returning partial result",
-            MAX_TOOL_ITERATIONS,
-        )
-        return "[PARTIAL] Tool loop iteration cap reached."
-
-    async def _dispatch_tool(
-        self,
-        tool_name: str,
-        tool_input: dict[str, Any],
-        tool_use_id: str,
-    ) -> dict[str, Any]:
-        """Dispatch a single tool call and return an Anthropic tool_result block.
-
-        If the tool raises an exception, returns is_error=True so Claude can
-        handle degraded data gracefully rather than crashing the loop.
-        """
-        logger.debug("Orchestrator: tool call %r with input %s", tool_name, tool_input)
-
-        try:
-            if tool_name == "get_upcoming_matches":
-                result = await get_upcoming_matches(**tool_input)
-            elif tool_name == "get_signals_for_match":
-                result = await get_signals_for_match(**tool_input)
-            elif tool_name == "get_odds_movement":
-                result = await get_odds_movement(**tool_input)
-            elif tool_name == "get_bankroll_status":
-                result = await get_bankroll_status()
-            elif tool_name == "get_recent_bets":
-                result = await get_recent_bets(**tool_input)
-            elif tool_name == "get_model_performance":
-                result = await get_model_performance(**tool_input)
-            elif tool_name == "check_lineup_changes":
-                result = await check_lineup_changes(**tool_input)
-            elif tool_name == "check_weather_news":
-                result = await check_weather_news(**tool_input)
-            else:
-                logger.error("Orchestrator: unknown tool %r requested by Claude", tool_name)
-                return {
-                    "type": "tool_result",
-                    "tool_use_id": tool_use_id,
-                    "is_error": True,
-                    "content": f"Unknown tool: {tool_name!r}",
-                }
-
-            return {
-                "type": "tool_result",
-                "tool_use_id": tool_use_id,
-                "content": json.dumps(result, default=str),
-            }
-
-        except Exception as exc:
-            logger.error(
-                "Orchestrator: tool %r raised %s — %s",
-                tool_name,
-                type(exc).__name__,
-                exc,
-                exc_info=True,
-            )
-            return {
-                "type": "tool_result",
-                "tool_use_id": tool_use_id,
-                "is_error": True,
-                "content": f"Tool error: {type(exc).__name__}: {exc}",
-            }
-
-    # ------------------------------------------------------------------
     # Private: daily report narrative
     # ------------------------------------------------------------------
 
@@ -610,7 +523,7 @@ class Orchestrator:
 
         try:
             response = await self._client.messages.create(
-                model=CLAUDE_MODEL,
+                model=self.model,
                 max_tokens=512,
                 system=(
                     "You are a brief, data-driven analyst summarising a football EV betting "

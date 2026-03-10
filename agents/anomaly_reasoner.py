@@ -4,9 +4,11 @@ Uses Claude to assess whether an EV signal with suspicious characteristics
 should be approved, flagged for human review, or rejected.
 
 Design decisions:
-- A single Claude API call per signal (no tool loop). The input context is
-  fully assembled by the caller before invoking this agent. Claude is asked
-  to reason and return a structured JSON object.
+- Inherits from BaseAgent to reuse the Anthropic client setup and conversation
+  history management. However, this agent does NOT use the tool-use loop —
+  it makes a single Claude API call per signal with no tools exposed.
+- The assess() method calls self.run() from BaseAgent (which handles the
+  message/response cycle) with an empty tools list.
 - The response schema is validated manually (no third-party JSON schema lib).
   If parsing fails, the function returns a "flag" recommendation — fail closed.
 - Model is CLAUDE_MODEL constant so it can be audited and changed in one place.
@@ -17,7 +19,6 @@ Assumptions:
 - The input `context` dict may contain keys: odds_movement (list[dict]),
   lineup_info (dict), weather_info (dict), detection_result (dict from
   detect_odds_anomaly). All are optional — Claude handles missing keys.
-- anthropic.AsyncAnthropic is initialised with the key from settings.
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ from typing import Any
 
 import anthropic
 
-from config.settings import settings
+from agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
@@ -84,8 +85,11 @@ Decision heuristics:
 """
 
 
-class AnomalyReasoner:
+class AnomalyReasoner(BaseAgent):
     """Claude-powered agent for anomaly assessment of EV signals.
+
+    Inherits from BaseAgent for client setup and history management.
+    Does NOT use the tool-use loop — each assessment is a single Claude call.
 
     Usage:
         reasoner = AnomalyReasoner()
@@ -93,7 +97,38 @@ class AnomalyReasoner:
     """
 
     def __init__(self) -> None:
-        self._client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+        super().__init__(
+            name="anomaly_reasoner",
+            model=CLAUDE_MODEL,
+            max_history=20,
+            max_iterations=1,
+            max_tokens=MAX_TOKENS,
+        )
+
+    # ------------------------------------------------------------------
+    # BaseAgent abstract interface
+    # ------------------------------------------------------------------
+
+    @property
+    def system_prompt(self) -> str:
+        return SYSTEM_PROMPT
+
+    @property
+    def tools(self) -> list[dict]:
+        # AnomalyReasoner does not use tools — single-shot assessment.
+        return []
+
+    async def execute_tool(
+        self, tool_name: str, tool_input: dict[str, Any]
+    ) -> Any:
+        # Should never be called since tools is empty.
+        raise NotImplementedError(
+            f"AnomalyReasoner does not support tool calls (got {tool_name!r})"
+        )
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
     async def assess(
         self,
@@ -129,24 +164,20 @@ class AnomalyReasoner:
         """
         user_content = self._build_user_message(signal, context)
 
-        try:
-            response = await self._client.messages.create(
-                model=CLAUDE_MODEL,
-                max_tokens=MAX_TOKENS,
-                system=SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": user_content}],
-            )
-        except anthropic.APIError as exc:
-            logger.error(
-                "AnomalyReasoner: Claude API error for signal %s — %s",
-                signal.get("signal_id", "unknown"),
-                exc,
-            )
-            return self._fallback_response(
-                reason=f"Claude API error: {type(exc).__name__}: {exc}"
-            )
+        # Reset history before each assessment — each signal is independent.
+        self.reset()
 
-        raw_text: str = response.content[0].text if response.content else ""
+        # Use BaseAgent.run() for the Claude call.
+        raw_text = await self.run(user_content)
+
+        # Handle API errors propagated as error strings from BaseAgent.
+        if raw_text.startswith("[ERROR]"):
+            logger.error(
+                "AnomalyReasoner: Claude call failed for signal %s — %s",
+                signal.get("signal_id", "unknown"),
+                raw_text,
+            )
+            return self._fallback_response(reason=raw_text)
 
         parsed = self._parse_response(raw_text, signal.get("signal_id", "unknown"))
         return parsed
